@@ -1,81 +1,74 @@
 /** @import must precede all other statements */
 @import url("https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap");
-
 @import "tailwindcss";
-
 /* Theme, content globs, and plugins are declared in tailwind.config.ts. */
 @config "../tailwind.config.ts";
-
 @layer base {
   /**
    * ListenRight theme
-   * Warm, calm, paper-and-classroom palette. Light mode only, by design.
+   *
+   * Purple and orange palette. Light mode only, by design.
    * tailwind.config.ts expects the following color variables to be expressed as HSL values.
    * A different format will require also updating the theme in tailwind.config.ts.
-  */
+   */
   :root {
-    --background: 38 40% 96%;
-    --foreground: 25 25% 22%;
+    --background: 268 55% 78%;
+    --foreground: 265 30% 16%;
+    --card: 270 45% 98%;
+    --card-foreground: 265 30% 16%;
+    --popover: 270 45% 98%;
+    --popover-foreground: 265 30% 16%;
 
-    --card: 40 45% 98%;
-    --card-foreground: 25 25% 22%;
+    /* Purple — main actions / navigation */
+    --primary: 265 55% 48%;
+    --primary-foreground: 0 0% 100%;
 
-    --popover: 40 45% 98%;
-    --popover-foreground: 25 25% 22%;
+    /* Orange — secondary sections */
+    --secondary: 28 85% 55%;
+    --secondary-foreground: 0 0% 100%;
 
-    --primary: 174 24% 42%;
-    --primary-foreground: 40 45% 98%;
+    --muted: 268 35% 72%;
+    --muted-foreground: 265 12% 40%;
+    --accent: 268 45% 74%;
+    --accent-foreground: 265 30% 16%;
 
-    --secondary: 14 62% 62%;
-    --secondary-foreground: 40 45% 98%;
+    /* Coral-red — priority / errors, distinct from orange secondary */
+    --destructive: 350 65% 52%;
+    --destructive-foreground: 0 0% 100%;
 
-    --muted: 36 30% 91%;
-    --muted-foreground: 25 15% 42%;
-
-    --accent: 40 45% 91%;
-    --accent-foreground: 25 25% 22%;
-
-    --destructive: 8 55% 52%;
-    --destructive-foreground: 40 45% 98%;
-
-    --border: 34 24% 86%;
-    --input: 34 24% 86%;
-    --ring: 174 24% 42%;
-
+    --border: 268 30% 65%;
+    --input: 268 30% 65%;
+    --ring: 265 55% 48%;
     --radius: 1rem;
 
     /* Gap-status indicators: soft, low-saturation, never traffic-light red/green */
-    --status-priority: 14 55% 68%;
-    --status-priority-foreground: 14 45% 26%;
-    --status-attention: 42 55% 68%;
-    --status-attention-foreground: 38 45% 24%;
-    --status-ontrack: 150 20% 58%;
-    --status-ontrack-foreground: 150 25% 20%;
+    --status-priority: 350 65% 68%;               /* Coral-red */
+    --status-priority-foreground: 350 55% 22%;
+    --status-attention: 40 90% 58%;                /* Amber-yellow */
+    --status-attention-foreground: 36 60% 18%;
+    --status-ontrack: 165 45% 40%;                 /* Teal-green */
+    --status-ontrack-foreground: 165 45% 14%;
 
-    --sidebar-background: 38 40% 96%;
-    --sidebar-foreground: 25 25% 22%;
-    --sidebar-primary: 174 24% 42%;
-    --sidebar-primary-foreground: 40 45% 98%;
-    --sidebar-accent: 40 45% 91%;
-    --sidebar-accent-foreground: 25 25% 22%;
-    --sidebar-border: 34 24% 86%;
-    --sidebar-ring: 174 24% 42%;
+    --sidebar-background: 270 45% 98%;
+    --sidebar-foreground: 265 30% 16%;
+    --sidebar-primary: 265 55% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 268 45% 76%;
+    --sidebar-accent-foreground: 265 30% 16%;
+    --sidebar-border: 268 30% 68%;
+    --sidebar-ring: 265 55% 48%;
   }
 }
-
 @layer base {
   * {
     @apply border-border;
   }
-
   html {
     color-scheme: light only;
   }
-
   body {
     @apply bg-background text-foreground font-body;
   }
-
   h1,
   h2,
   h3,
@@ -85,22 +78,19 @@
     @apply font-heading;
     letter-spacing: 0.01em;
   }
-
   :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
     overflow-wrap: anywhere;
     word-break: break-word;
   }
-
   pre,
   code {
     overflow-x: auto;
     white-space: pre;
   }
-
   @media print {
     nav,
     header,
-    .print\\:hidden {
+    .print\:hidden {
       display: none !important;
     }
     body {
