@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import type { Student } from "@/lib/mock-data";
+import type { AvatarTint } from "@/domain/types";
 
-const tintClasses: Record<Student["avatarTint"], string> = {
+const tintClasses: Record<AvatarTint, string> = {
   teal: "bg-primary/15 text-primary",
   coral: "bg-secondary/20 text-secondary",
   sand: "bg-status-attention/25 text-status-attention-foreground",
@@ -9,15 +9,17 @@ const tintClasses: Record<Student["avatarTint"], string> = {
 };
 
 export default function StudentAvatar({
-  student,
+  name,
+  tint,
   size = "md",
   className,
 }: {
-  student: Pick<Student, "name" | "avatarTint">;
+  name: string;
+  tint: AvatarTint;
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const initial = student.name.trim().charAt(0).toUpperCase();
+  const initial = name.trim().charAt(0).toUpperCase() || "?";
   const sizeClasses =
     size === "lg"
       ? "h-14 w-14 text-lg"
@@ -29,7 +31,7 @@ export default function StudentAvatar({
     <span
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full font-heading font-bold",
-        tintClasses[student.avatarTint],
+        tintClasses[tint],
         sizeClasses,
         className,
       )}

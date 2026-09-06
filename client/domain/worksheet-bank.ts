@@ -1,0 +1,327 @@
+import type { Grade, Subject, WorksheetTemplate, WorksheetTier } from "./types";
+
+export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
+  {
+    id: "ws-bd-1",
+    gapTypeId: "letter-sound-bd",
+    subject: "reading",
+    grades: [1, 2],
+    tier: 1,
+    title: "b and d sound sort",
+    focus: "Hear, trace, and sort short b/d words with picture support.",
+    items: [
+      { prompt: "Circle the letter that matches the picture: ball / doll." },
+      { prompt: "Say: bat, bag, bed. Trace b three times." },
+      { prompt: "Say: dog, dig, lid. Trace d three times." },
+      { prompt: "Sort: bad, dad, big, dig — b-words vs d-words." },
+    ],
+  },
+  {
+    id: "ws-bd-2",
+    gapTypeId: "letter-sound-bd",
+    subject: "reading",
+    grades: [1, 2],
+    tier: 2,
+    title: "b and d in sentences",
+    focus: "Read short sentences that mix b and d without relying on pictures.",
+    items: [
+      { prompt: "Read: The dog sat on the bed." },
+      { prompt: "Read: Dad had a big bag." },
+      { prompt: "Write b or d: _og, _ed, _ad, _ig." },
+      { prompt: "Make two new words with b and two with d." },
+    ],
+  },
+  {
+    id: "ws-blend-1",
+    gapTypeId: "consonant-blend-bl-cl-st",
+    subject: "reading",
+    grades: [1, 2, 3],
+    tier: 1,
+    title: "Blend builders: bl · cl · st",
+    focus: "Stretch and blend the two starting sounds before reading the word.",
+    items: [
+      { prompt: "Stretch: b-l-ue → blue. Clap the two starting sounds." },
+      { prompt: "Stretch: c-l-ap → clap." },
+      { prompt: "Stretch: s-t-op → stop." },
+      { prompt: "Picture match: block, clock, star." },
+    ],
+  },
+  {
+    id: "ws-blend-2",
+    gapTypeId: "consonant-blend-bl-cl-st",
+    subject: "reading",
+    grades: [1, 2, 3],
+    tier: 2,
+    title: "Blend sentences: bl · cl · st",
+    focus: "Keep both consonants when the blend sits inside a short sentence.",
+    items: [
+      { prompt: "Read: The black cat sat on the mat." },
+      { prompt: "Read: Clap for the class." },
+      { prompt: "Read: Stop at the stone step." },
+      { prompt: "Write three words: one bl, one cl, one st." },
+    ],
+  },
+  {
+    id: "ws-blend-3",
+    gapTypeId: "consonant-blend-bl-cl-st",
+    subject: "reading",
+    grades: [2, 3],
+    tier: 3,
+    title: "Blend story strip",
+    focus: "Read a short connected text packed with target blends.",
+    items: [
+      {
+        prompt:
+          "Read: Stan and Clare stop at the black stone. Clare claps. Stan stands still.",
+      },
+      { prompt: "Underline every bl, cl, and st you hear." },
+      { prompt: "Retell the strip in your own words." },
+    ],
+  },
+  {
+    id: "ws-begin-1",
+    gapTypeId: "word-position-begin",
+    subject: "reading",
+    grades: [1, 2, 3],
+    tier: 1,
+    title: "First-sound spotlight",
+    focus: "Slow down on the first sound before saying the rest of the word.",
+    items: [
+      { prompt: "Tap the first sound: m-at, s-un, t-op." },
+      { prompt: "Cover the rest of the word. Say only the first sound, then the whole word." },
+      { prompt: "Read: mat, sun, top, dog, cat." },
+    ],
+  },
+  {
+    id: "ws-end-1",
+    gapTypeId: "word-position-end",
+    subject: "reading",
+    grades: [1, 2, 3],
+    tier: 1,
+    title: "Last-sound listen",
+    focus: "Hold the last sound so it is not dropped.",
+    items: [
+      { prompt: "Stretch the last sound: ru-n, na-p, si-t." },
+      { prompt: "Which word ends with t: cat, can, cap?" },
+      { prompt: "Read and clap the last sound: hop, hat, hen." },
+    ],
+  },
+  {
+    id: "ws-sight-1",
+    gapTypeId: "sight-word-recall",
+    subject: "reading",
+    grades: [1, 2],
+    tier: 1,
+    title: "Everyday words flash sheet",
+    focus: "See the whole word: the, and, can, I, to, a.",
+    items: [
+      { prompt: "Flash: the, and, can, I, to, a (3 times each)." },
+      { prompt: "Find them in: The cat and I can sit." },
+      { prompt: "Write: the, and, can." },
+    ],
+  },
+  {
+    id: "ws-sight-2",
+    gapTypeId: "sight-word-recall",
+    subject: "reading",
+    grades: [1, 2],
+    tier: 2,
+    title: "Sight words in a tiny story",
+    focus: "Read connected text without sounding each letter of known words.",
+    items: [
+      { prompt: "Read: I can sit and the dog can nap." },
+      { prompt: "Cover and recall: the, and, can." },
+      { prompt: "Write one new sentence using the, and, can." },
+    ],
+  },
+  {
+    id: "ws-multi-1",
+    gapTypeId: "multisyllable-decoding",
+    subject: "reading",
+    grades: [2, 3],
+    tier: 1,
+    title: "Syllable break-up cards",
+    focus: "Clap and chunk longer words before reading them.",
+    items: [
+      { prompt: "Clap: wa-ter, gar-den, Sat-ur-day." },
+      { prompt: "Read each chunk, then the whole word." },
+      { prompt: "Circle the number of claps in: community, vegetables, together." },
+    ],
+  },
+  {
+    id: "ws-multi-2",
+    gapTypeId: "multisyllable-decoding",
+    subject: "reading",
+    grades: [2, 3],
+    tier: 2,
+    title: "Chunk and reread",
+    focus: "Reread a short paragraph after marking syllable breaks.",
+    items: [
+      { prompt: "Mark breaks in: neighbourhood, celebrate, harvest." },
+      { prompt: "Read the garden paragraph slowly, then a little faster." },
+      { prompt: "Tell a partner what the children did on Saturday." },
+    ],
+  },
+  {
+    id: "ws-dec10-1",
+    gapTypeId: "decade-9-10",
+    subject: "numeracy",
+    grades: [1, 2],
+    tier: 1,
+    title: "Crossing to 10",
+    focus: "Count objects across the 9-to-10 boundary with a ten-frame.",
+    items: [
+      { prompt: "Fill a ten-frame: 8, 9, 10. Say each number." },
+      { prompt: "Count 9 pebbles, add 1. What number now?" },
+      { prompt: "Write the path: 7  8  9  __  11." },
+    ],
+  },
+  {
+    id: "ws-dec10-2",
+    gapTypeId: "decade-9-10",
+    subject: "numeracy",
+    grades: [1, 2],
+    tier: 2,
+    title: "Ten-jumps with a number path",
+    focus: "Move on a number path from 8 through 12 without skipping 10.",
+    items: [
+      { prompt: "Hop on the path: 8 → 9 → 10 → 11 → 12." },
+      { prompt: "Start at 9. Add 1 three times. Write the numbers." },
+      { prompt: "Circle every 10 you land on while counting to 20." },
+    ],
+  },
+  {
+    id: "ws-dec30-1",
+    gapTypeId: "decade-29-30",
+    subject: "numeracy",
+    grades: [2, 3],
+    tier: 1,
+    title: "Decade jump: 29 → 30",
+    focus: "Practise the tens change from 29 to 30 with a hundred chart.",
+    items: [
+      { prompt: "Say: 27, 28, 29, 30, 31. Tap 30 in a louder voice." },
+      { prompt: "Colour 29 and 30 on a hundred chart." },
+      { prompt: "Fill: 28, __, 30, __." },
+    ],
+  },
+  {
+    id: "ws-dec30-2",
+    gapTypeId: "decade-29-30",
+    subject: "numeracy",
+    grades: [2, 3],
+    tier: 2,
+    title: "More decade jumps to 100",
+    focus: "Repeat the 29–30 pattern at 39–40, 59–60, and 79–80.",
+    items: [
+      { prompt: "Fill: 38, 39, __, 41." },
+      { prompt: "Fill: 58, 59, __, 61." },
+      { prompt: "Fill: 78, 79, __, 81." },
+      { prompt: "Tell a friend what changes when you go from 29 to 30." },
+    ],
+  },
+  {
+    id: "ws-dec30-3",
+    gapTypeId: "decade-29-30",
+    subject: "numeracy",
+    grades: [2, 3],
+    tier: 3,
+    title: "Mixed decade crossings",
+    focus: "Count forward and backward across several decade boundaries.",
+    items: [
+      { prompt: "Count forward: 25 to 35." },
+      { prompt: "Count backward: 42 to 28." },
+      { prompt: "Circle every number where the tens digit changes." },
+    ],
+  },
+  {
+    id: "ws-decade-1",
+    gapTypeId: "decade-generic",
+    subject: "numeracy",
+    grades: [1, 2, 3],
+    tier: 1,
+    title: "Next ten practice",
+    focus: "Name the next ten after 10, 20, 40, and 60.",
+    items: [
+      { prompt: "What comes after 19?" },
+      { prompt: "What comes after 39?" },
+      { prompt: "Hop: 10, 20, 30, __, 50." },
+    ],
+  },
+  {
+    id: "ws-place-1",
+    gapTypeId: "place-value-tens-hundreds",
+    subject: "numeracy",
+    grades: [2, 3],
+    tier: 1,
+    title: "Hundreds, tens, ones grid",
+    focus: "Build 3-digit numbers with place-value blocks or drawings.",
+    items: [
+      { prompt: "Show 245: how many hundreds, tens, ones?" },
+      { prompt: "Which is more: 199 or 200? Why?" },
+      { prompt: "Write the number: 3 hundreds, 5 tens, 0 ones." },
+    ],
+  },
+  {
+    id: "ws-place-2",
+    gapTypeId: "place-value-tens-hundreds",
+    subject: "numeracy",
+    grades: [2, 3],
+    tier: 2,
+    title: "Read and build 3-digit numbers",
+    focus: "Read numbers aloud and rebuild them if a place was mixed up.",
+    items: [
+      { prompt: "Read: 108, 350, 499, 500." },
+      { prompt: "Swap: 245 vs 254 — what changed?" },
+      { prompt: "Write two numbers with 4 in the tens place." },
+    ],
+  },
+  {
+    id: "ws-back-1",
+    gapTypeId: "backward-counting",
+    subject: "numeracy",
+    grades: [1, 2, 3],
+    tier: 1,
+    title: "Backward count ladder",
+    focus: "Count back on a ladder from a given start, one step at a time.",
+    items: [
+      { prompt: "Start at 10. Count back to 1." },
+      { prompt: "Start at 20. Count back to 15." },
+      { prompt: "Fill: 12, 11, __, 9, __." },
+    ],
+  },
+  {
+    id: "ws-back-2",
+    gapTypeId: "backward-counting",
+    subject: "numeracy",
+    grades: [1, 2, 3],
+    tier: 2,
+    title: "Backward jumps across tens",
+    focus: "Count backward across a ten, for example 31 → 29.",
+    items: [
+      { prompt: "Count back: 32, 31, 30, 29, 28." },
+      { prompt: "Fill: 21, 20, __, 18." },
+      { prompt: "Start at 40. Count back 5 numbers." },
+    ],
+  },
+];
+
+export function selectWorksheetTemplate(
+  gapTypeId: string,
+  grade: Grade,
+  subject: Subject,
+  tier: WorksheetTier,
+): WorksheetTemplate | undefined {
+  const pool = WORKSHEET_TEMPLATES.filter(
+    (t) => t.gapTypeId === gapTypeId && t.subject === subject && t.grades.includes(grade),
+  );
+  if (!pool.length) return undefined;
+  return (
+    pool.find((t) => t.tier === tier) ??
+    pool.sort((a, b) => a.tier - b.tier).at(-1) ??
+    pool[0]
+  );
+}
+
+export function nextTier(current: WorksheetTier): WorksheetTier {
+  return current >= 3 ? 3 : ((current + 1) as WorksheetTier);
+}

@@ -96,4 +96,18 @@
     overflow-x: auto;
     white-space: pre;
   }
+
+  @media print {
+    nav,
+    header,
+    .print\\:hidden {
+      display: none !important;
+    }
+    body {
+      background: white;
+    }
+    main {
+      padding: 0 !important;
+    }
+  }
 }

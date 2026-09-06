@@ -23,6 +23,7 @@ export default defineConfig({
         "https",
         "os",
         "crypto",
+        "node:crypto",
         "stream",
         "util",
         "events",

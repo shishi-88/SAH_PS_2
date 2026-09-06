@@ -1,0 +1,18 @@
+{
+  "name": "Sahayak",
+  "short_name": "Sahayak",
+  "description": "Offline-first Class 1–3 reading and numeracy assessment for one teacher’s phone.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F1E8",
+  "theme_color": "#5E8A84",
+  "lang": "en-IN",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
