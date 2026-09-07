@@ -20,11 +20,12 @@ import {
   startAudioRecording,
   startOptionalWebSpeech,
 } from "@/speech/capabilities";
+import { localizedGapType, localizedPrompt, t } from "@/lib/i18n";
 
 type Step = "student" | "skill" | "prompt" | "listen" | "mark" | "result";
 
 export default function Assess() {
-  const { snapshot, ready, recordAssessment } = useApp();
+  const { snapshot, ready, recordAssessment, language } = useApp();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const preselected = params.get("student");
@@ -54,7 +55,7 @@ export default function Assess() {
     null,
   );
   const [saving, setSaving] = useState(false);
-  const [speechNote] = useState(() => inspectSpeechCapability());
+  const speechNote = useMemo(() => inspectSpeechCapability(language), [language]);
   const recRef = useRef<Awaited<ReturnType<typeof startAudioRecording>>>(null);
   const dictationRef = useRef<ReturnType<typeof startOptionalWebSpeech>>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -102,7 +103,7 @@ export default function Assess() {
     }
     setRecording(false);
     if (prompt && transcript.trim()) {
-      const auto = matchTranscriptToObservations(prompt, transcript);
+      const auto = matchTranscriptToObservations(localizedPrompt(prompt, language), transcript);
       if (auto.observations.length) {
         setObservations(auto.observations);
         setAnalysisSource("web-speech-assist");
@@ -113,12 +114,15 @@ export default function Assess() {
 
   function runDiagnosis() {
     if (!prompt) return;
-    const result = diagnose(prompt, {
+    const result = diagnose(localizedPrompt(prompt, language), {
       observations,
       transcript: transcript || undefined,
       notes,
       recordingSeconds: seconds || undefined,
-    }, { transcriptFromWebSpeech: analysisSource === "web-speech-assist" });
+    }, {
+      transcriptFromWebSpeech: analysisSource === "web-speech-assist",
+      lang: language,
+    });
     setDiagnosisSummary(result.summary);
     setAnalysisSource(result.analysisSource);
     const preferred = relatedGapId
@@ -170,20 +174,20 @@ export default function Assess() {
     (saved?.worksheetId ? snapshot.worksheets.find((w) => w.id === saved.worksheetId) : undefined);
   const gapTypeIdForSheet = saved?.gapTypeId;
 
-  if (!ready) return <p className="py-16 text-center text-muted-foreground">Loading…</p>;
+  if (!ready) return <p className="py-16 text-center text-muted-foreground">{t(language, "assess.loading")}</p>;
 
   const title =
     step === "student"
-      ? "Choose a student"
+      ? t(language, "assess.chooseStudent")
       : step === "skill"
-        ? "Reading or numeracy?"
+        ? t(language, "assess.skill")
         : step === "prompt"
-          ? "Choose a prompt"
+          ? t(language, "assess.choosePrompt")
           : step === "listen"
-            ? "Listen"
+            ? t(language, "assess.listen")
             : step === "mark"
-              ? "What did you hear?"
-              : "Skill gap";
+              ? t(language, "assess.whatHeard")
+              : t(language, "assess.gapTitle");
 
   return (
     <div className="space-y-6">
@@ -211,9 +215,9 @@ export default function Assess() {
         <div className="space-y-2.5">
           {snapshot.students.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Add a student first.{" "}
+              {t(language, "assess.addFirst")}{" "}
               <Link className="font-semibold text-primary" to="/students/new">
-                Create profile
+                {t(language, "assess.createProfile")}
               </Link>
             </p>
           )}
@@ -245,8 +249,8 @@ export default function Assess() {
           <div className="grid gap-3 sm:grid-cols-2">
             <SubjectCard
               icon={BookOpen}
-              title="Reading"
-              detail="A short passage read aloud"
+              title={t(language, "assess.reading")}
+              detail={t(language, "assess.readingDetail")}
               onClick={() => {
                 setSubject("reading");
                 setPrompt(null);
@@ -255,8 +259,8 @@ export default function Assess() {
             />
             <SubjectCard
               icon={Calculator}
-              title="Numeracy"
-              detail="A number sequence or place-value read-aloud"
+              title={t(language, "assess.numeracy")}
+              detail={t(language, "assess.numeracyDetail")}
               coral
               onClick={() => {
                 setSubject("numeracy");
@@ -287,15 +291,17 @@ export default function Assess() {
         </div>
       )}
 
-      {step === "listen" && student && prompt && (
+      {step === "listen" && student && prompt && (() => {
+        const view = localizedPrompt(prompt, language);
+        return (
         <div className="space-y-5">
           <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {prompt.subject === "reading" ? "Reading passage" : "Number sequence"} · Grade {student.grade}
+              {view.subject === "reading" ? t(language, "assess.readingPassage") : t(language, "assess.numberSequence")} · {t(language, "assess.gradeLabel", { grade: student.grade })}
             </p>
-            <p className="mt-2 font-heading text-lg font-bold">{prompt.title}</p>
-            <p className="mt-3 text-[17px] leading-loose">{prompt.displayText}</p>
-            <p className="mt-3 text-sm text-muted-foreground">{prompt.instruction}</p>
+            <p className="mt-2 font-heading text-lg font-bold">{view.title}</p>
+            <p className="mt-3 text-[17px] leading-loose">{view.displayText}</p>
+            <p className="mt-3 text-sm text-muted-foreground">{view.instruction}</p>
           </div>
           <div className="rounded-3xl bg-accent px-5 py-8 text-center">
             <p className="text-sm leading-relaxed text-muted-foreground">{speechNote.note}</p>
@@ -315,36 +321,39 @@ export default function Assess() {
                 </Button>
               )}
               <p className="font-heading font-bold">
-                {recording ? `Listening… 0:${String(Math.min(seconds, 99)).padStart(2, "0")}` : "Start listening"}
+                {recording
+                  ? t(language, "assess.listening", { time: `0:${String(Math.min(seconds, 99)).padStart(2, "0")}` })
+                  : t(language, "assess.startListening")}
               </p>
               <Button variant="ghost" className="rounded-full" onClick={() => setStep("mark")}>
-                Skip recording — mark by hand
+                {t(language, "assess.skipRecord")}
               </Button>
             </div>
             {transcript ? (
               <p className="mt-3 text-left text-sm">
-                <span className="font-semibold">Optional dictation (may need internet): </span>
+                <span className="font-semibold">{t(language, "assess.dictation")}</span>
                 {transcript}
               </p>
             ) : null}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {step === "mark" && prompt && (
         <div className="space-y-5">
-          <TokenMarker prompt={prompt} observations={observations} onChange={setObservations} />
+          <TokenMarker prompt={localizedPrompt(prompt, language)} observations={observations} onChange={setObservations} />
           <label className="block text-sm font-semibold">
-            Extra notes
+            {t(language, "assess.extraNotes")}
             <textarea
               className="mt-1 min-h-20 w-full rounded-2xl border border-border bg-card px-3 py-2 text-base font-normal"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anything else you noticed…"
+              placeholder={t(language, "assess.notesPlaceholder")}
             />
           </label>
           <Button className="w-full rounded-full" size="lg" onClick={runDiagnosis}>
-            Find the skill gap
+            {t(language, "assess.findGap")}
           </Button>
         </div>
       )}
@@ -355,12 +364,13 @@ export default function Assess() {
           <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
             <p className="text-sm leading-relaxed text-muted-foreground">{diagnosisSummary}</p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Source: {analysisSource === "web-speech-assist" ? "optional dictation + rules" : "teacher marks + rules"}.
-              Mappings marked demo until verified NIPUN codes are inserted.
+              {t(language, analysisSource === "web-speech-assist" ? "assess.sourceDictation" : "assess.sourceTeacher")}
             </p>
             <div className="mt-4 space-y-2">
-              <p className="text-sm font-semibold">Named gap</p>
-              {gapTypesFor(subject, student.grade).map((g) => (
+              <p className="text-sm font-semibold">{t(language, "assess.namedGap")}</p>
+              {gapTypesFor(subject, student.grade).map((g) => {
+                const view = localizedGapType(g, language);
+                return (
                 <label
                   key={g.id}
                   className="flex items-start gap-3 rounded-2xl border border-border bg-accent/60 px-3 py-3"
@@ -373,11 +383,12 @@ export default function Assess() {
                     className="mt-1"
                   />
                   <span>
-                    <span className="block font-heading font-bold">{g.label}</span>
-                    <span className="text-sm text-muted-foreground">{g.description}</span>
+                    <span className="block font-heading font-bold">{view.label}</span>
+                    <span className="text-sm text-muted-foreground">{view.description}</span>
                   </span>
                 </label>
-              ))}
+                );
+              })}
               <label className="flex items-start gap-3 rounded-2xl border border-dashed border-border px-3 py-3">
                 <input
                   type="radio"
@@ -386,36 +397,43 @@ export default function Assess() {
                   onChange={() => setChosenGap(null)}
                   className="mt-1"
                 />
-                <span className="text-sm">No specific gap this time — save a clear sample only.</span>
+                <span className="text-sm">{t(language, "assess.noGapOption")}</span>
               </label>
             </div>
           </div>
 
           {!saved ? (
             <Button className="w-full rounded-full" size="lg" disabled={saving} onClick={() => persist()}>
-              {saving ? "Saving on this phone…" : chosenGap ? "Save gap and make practice sheet" : "Save sample"}
+              {saving
+                ? t(language, "assess.saving")
+                : chosenGap
+                  ? t(language, "assess.saveGap")
+                  : t(language, "assess.saveSample")}
             </Button>
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Saved to {student.name.split(" ")[0]}’s record
-                {getGapType(chosenGap ?? "") ? ` · ${getGapType(chosenGap!)!.label}` : ""}.
+                {t(language, "assess.savedTo", { first: student.name.split(" ")[0] })}
+                {chosenGap
+                  ? ` · ${localizedGapType(getGapType(chosenGap)!, language).label}`
+                  : ""}
+                .
               </p>
               {sheet && (
                 <>
                   <WorksheetPreview sheet={sheet} student={student} gapTypeId={gapTypeIdForSheet} />
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <Button asChild className="flex-1 rounded-full" size="lg">
-                      <Link to={`/worksheets/${sheet.id}`}>Preview / print</Link>
+                      <Link to={`/worksheets/${sheet.id}`}>{t(language, "assess.previewPrint")}</Link>
                     </Button>
                     <Button asChild variant="secondary" className="flex-1 rounded-full" size="lg">
-                      <Link to={`/students/${student.id}`}>Student history</Link>
+                      <Link to={`/students/${student.id}`}>{t(language, "assess.studentHistory")}</Link>
                     </Button>
                   </div>
                 </>
               )}
               <Button variant="ghost" className="w-full rounded-full" onClick={() => navigate("/")}>
-                Back to class
+                {t(language, "assess.backToClass")}
               </Button>
             </div>
           )}
@@ -436,13 +454,14 @@ function StudentChip({
   grade: number;
   roll: string;
 }) {
+  const { language } = useApp();
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-accent p-4">
       <StudentAvatar name={name} tint={tint} />
       <div>
         <p className="font-heading font-bold">{name}</p>
         <p className="text-sm text-muted-foreground">
-          Grade {grade} · Roll {roll}
+          {t(language, "home.gradeRoll", { grade, roll })}
         </p>
       </div>
     </div>

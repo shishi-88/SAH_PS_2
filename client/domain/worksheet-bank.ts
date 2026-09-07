@@ -15,6 +15,14 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Say: dog, dig, lid. Trace d three times." },
       { prompt: "Sort: bad, dad, big, dig — b-words vs d-words." },
     ],
+    titleHi: "ब और द ध्वनि क्रमबद्ध",
+    focusHi: "चित्र की मदद से छोटे ब/द शब्द सुनो, लिखो और छाँटो।",
+    itemsHi: [
+      { prompt: "चित्र से मिलते अक्षर पर गोला लगाओ: गेंद / गुड़िया।" },
+      { prompt: "बोलो: बकरी, बंदर, बिल्ली। 'ब' तीन बार लिखो।" },
+      { prompt: "बोलो: दरवाज़ा, दादा, दूध। 'द' तीन बार लिखो।" },
+      { prompt: "छाँटो: बग, बिल्ली, दग, दाद — 'ब' शब्द अलग, 'द' शब्द अलग।" },
+    ],
   },
   {
     id: "ws-bd-2",
@@ -29,6 +37,14 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Read: Dad had a big bag." },
       { prompt: "Write b or d: _og, _ed, _ad, _ig." },
       { prompt: "Make two new words with b and two with d." },
+    ],
+    titleHi: "वाक्यों में ब और द",
+    focusHi: "बिना चित्र के ब और द मिले छोटे वाक्य पढ़ो।",
+    itemsHi: [
+      { prompt: "पढ़ो: दादा के पास एक बिल्ली है।" },
+      { prompt: "पढ़ो: बंदर दूध पीता है।" },
+      { prompt: "खाली जगह भरो: _िल्ली, _ादा, _ूध, _करी।" },
+      { prompt: "'ब' से दो और 'द' से दो नए शब्द बनाओ।" },
     ],
   },
   {
@@ -45,6 +61,14 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Stretch: s-t-op → stop." },
       { prompt: "Picture match: block, clock, star." },
     ],
+    titleHi: "संयुक्त व्यंजन निर्माण: क्ल · प्ल · स्ट",
+    focusHi: "शुरुआती दो ध्वनियाँ खींचकर मिलाओ, फिर पूरा शब्द पढ़ो।",
+    itemsHi: [
+      { prompt: "खींचो: क-ल-ास → क्लास। दो शुरुआती ध्वनियाँ ताली से बजाओ।" },
+      { prompt: "खींचो: प-ल-ेट → प्लेट।" },
+      { prompt: "खींचो: स-ट-ेशन → स्टेशन।" },
+      { prompt: "चित्र मिलाओ: क्लास, प्लेट, स्टार।" },
+    ],
   },
   {
     id: "ws-blend-2",
@@ -59,6 +83,14 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Read: Clap for the class." },
       { prompt: "Read: Stop at the stone step." },
       { prompt: "Write three words: one bl, one cl, one st." },
+    ],
+    titleHi: "संयुक्त व्यंजन वाक्य: क्ल · प्ल · स्ट",
+    focusHi: "छोटे वाक्यों में संयुक्त व्यंजन बनाए रखो।",
+    itemsHi: [
+      { prompt: "पढ़ो: क्लास में सब चुप हैं।" },
+      { prompt: "पढ़ो: प्लेट पर प्लम है।" },
+      { prompt: "पढ़ो: रेल स्टेशन पर भीड़ है।" },
+      { prompt: "तीन शब्द लिखो: एक क्ल, एक प्ल, एक स्ट से।" },
     ],
   },
   {
@@ -77,6 +109,15 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Underline every bl, cl, and st you hear." },
       { prompt: "Retell the strip in your own words." },
     ],
+    titleHi: "संयुक्त व्यंजन कहानी-पट्टी",
+    focusHi: "संयुक्त व्यंजनों से भरा छोटा गद्यांश पढ़ो।",
+    itemsHi: [
+      {
+        prompt: "पढ़ो: स्टेशन के पास एक क्लास है। बच्चे प्लेट पर प्लम रखते हैं।",
+      },
+      { prompt: "जहाँ क्ल, प्ल, स्ट सुनो वहाँ रेखा खींचो।" },
+      { prompt: "पट्टी अपने शब्दों में दोबारा सुनाओ।" },
+    ],
   },
   {
     id: "ws-begin-1",
@@ -90,6 +131,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Tap the first sound: m-at, s-un, t-op." },
       { prompt: "Cover the rest of the word. Say only the first sound, then the whole word." },
       { prompt: "Read: mat, sun, top, dog, cat." },
+    ],
+    titleHi: "पहली ध्वनि की रोशनी",
+    focusHi: "पूरा शब्द बोलने से पहले पहली ध्वनि पर धीरे रुको।",
+    itemsHi: [
+      { prompt: "पहली ध्वनि टैप करो: म-छली, स-ड़क, त-रबूज़।" },
+      { prompt: "शब्द का बाकी हिस्सा ढक दो। पहले सिर्फ पहली ध्वनि, फिर पूरा शब्द बोलो।" },
+      { prompt: "पढ़ो: मछली, सड़क, तरबूज़, दरवाज़ा, किताब।" },
     ],
   },
   {
@@ -105,6 +153,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Which word ends with t: cat, can, cap?" },
       { prompt: "Read and clap the last sound: hop, hat, hen." },
     ],
+    titleHi: "अंतिम ध्वनि सुनो",
+    focusHi: "अंतिम ध्वनि पकड़कर रखो ताकि वह छूटे नहीं।",
+    itemsHi: [
+      { prompt: "अंतिम ध्वनि खींचो: का-म, न-मक, हा-थ।" },
+      { prompt: "किस शब्द के अंत में 'त' है: रात, राम, राज?" },
+      { prompt: "पढ़ो और अंतिम ध्वनि पर ताली बजाओ: होठ, मात, बात।" },
+    ],
   },
   {
     id: "ws-sight-1",
@@ -118,6 +173,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Flash: the, and, can, I, to, a (3 times each)." },
       { prompt: "Find them in: The cat and I can sit." },
       { prompt: "Write: the, and, can." },
+    ],
+    titleHi: "रोज़ के शब्दों की फ्लैश शीट",
+    focusHi: "पूरा शब्द देखो: का, की, और, मैं, है, नहीं।",
+    itemsHi: [
+      { prompt: "फ्लैश: का, की, और, मैं, है, नहीं (प्रत्येक 3 बार)।" },
+      { prompt: "इन्हें ढूँढो: मैं और माँ बाज़ार जाते हैं।" },
+      { prompt: "लिखो: का, की, और।" },
     ],
   },
   {
@@ -133,6 +195,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Cover and recall: the, and, can." },
       { prompt: "Write one new sentence using the, and, can." },
     ],
+    titleHi: "छोटी कहानी में दृष्टि-शब्द",
+    focusHi: "जाने-पहचाने शब्दों को अक्षर-अक्षर किए बिना पढ़ो।",
+    itemsHi: [
+      { prompt: "पढ़ो: मैं और दादा सुबह टहलते हैं।" },
+      { prompt: "ढककर याद करो: मैं, और, हैं।" },
+      { prompt: "'मैं', 'और', 'है' से एक नया वाक्य लिखो।" },
+    ],
   },
   {
     id: "ws-multi-1",
@@ -146,6 +215,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Clap: wa-ter, gar-den, Sat-ur-day." },
       { prompt: "Read each chunk, then the whole word." },
       { prompt: "Circle the number of claps in: community, vegetables, together." },
+    ],
+    titleHi: "अक्षर-विभाजन कार्ड",
+    focusHi: "लंबे शब्द पढ़ने से पहले ताली बजाकर टुकड़े करो।",
+    itemsHi: [
+      { prompt: "ताली बजाओ: सा-मु-दा-यिक, प-ड़ो-सी, श-नि-वार।" },
+      { prompt: "हर टुकड़ा पढ़ो, फिर पूरा शब्द।" },
+      { prompt: "तालियों की संख्या पर गोला लगाओ: सब्ज़ियाँ, फ़सल, जश्न।" },
     ],
   },
   {
@@ -161,6 +237,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Read the garden paragraph slowly, then a little faster." },
       { prompt: "Tell a partner what the children did on Saturday." },
     ],
+    titleHi: "टुकड़ा करो और दोबारा पढ़ो",
+    focusHi: "अक्षर-विभाजन चिह्नित करने के बाद छोटा पैराग्राफ दोबारा पढ़ो।",
+    itemsHi: [
+      { prompt: "इनमें टुकड़े चिह्नित करो: पड़ोस, सामुदायिक, शनिवार।" },
+      { prompt: "बगीचे का पैराग्राफ धीरे पढ़ो, फिर थोड़ा तेज़।" },
+      { prompt: "साथी को बताओ कि बच्चों ने शनिवार को क्या किया।" },
+    ],
   },
   {
     id: "ws-dec10-1",
@@ -174,6 +257,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Fill a ten-frame: 8, 9, 10. Say each number." },
       { prompt: "Count 9 pebbles, add 1. What number now?" },
       { prompt: "Write the path: 7  8  9  __  11." },
+    ],
+    titleHi: "10 पार करना",
+    focusHi: "टेन-फ्रेम से 9 से 10 की सीमा पार करके गिनो।",
+    itemsHi: [
+      { prompt: "टेन-फ्रेम भरो: 8, 9, 10। हर संख्या बोलो।" },
+      { prompt: "9 कंकड़ गिनो, 1 और जोड़ो। अब कितने?" },
+      { prompt: "रास्ता लिखो: 7  8  9  __  11।" },
     ],
   },
   {
@@ -189,6 +279,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Start at 9. Add 1 three times. Write the numbers." },
       { prompt: "Circle every 10 you land on while counting to 20." },
     ],
+    titleHi: "संख्या-पथ पर दस की छलाँग",
+    focusHi: "संख्या-पथ पर 8 से 12 तक चलो, 10 को छोड़े बिना।",
+    itemsHi: [
+      { prompt: "पथ पर कूदो: 8 → 9 → 10 → 11 → 12।" },
+      { prompt: "9 से शुरू करो। 1 तीन बार जोड़ो। संख्याएँ लिखो।" },
+      { prompt: "20 तक गिनते हुए हर 10 पर गोला लगाओ।" },
+    ],
   },
   {
     id: "ws-dec30-1",
@@ -202,6 +299,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Say: 27, 28, 29, 30, 31. Tap 30 in a louder voice." },
       { prompt: "Colour 29 and 30 on a hundred chart." },
       { prompt: "Fill: 28, __, 30, __." },
+    ],
+    titleHi: "दहाई छलाँग: 29 → 30",
+    focusHi: "सौ-चार्ट से 29 से 30 की दहाई बदलाव का अभ्यास करो।",
+    itemsHi: [
+      { prompt: "बोलो: 27, 28, 29, 30, 31। 30 पर तेज़ आवाज़ में टैप करो।" },
+      { prompt: "सौ-चार्ट पर 29 और 30 रंगो।" },
+      { prompt: "भरो: 28, __, 30, __।" },
     ],
   },
   {
@@ -218,6 +322,14 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Fill: 78, 79, __, 81." },
       { prompt: "Tell a friend what changes when you go from 29 to 30." },
     ],
+    titleHi: "100 तक और दहाई छलाँगें",
+    focusHi: "39–40, 59–60 और 79–80 पर भी 29–30 वाला पैटर्न दोहराओ।",
+    itemsHi: [
+      { prompt: "भरो: 38, 39, __, 41।" },
+      { prompt: "भरो: 58, 59, __, 61।" },
+      { prompt: "भरो: 78, 79, __, 81।" },
+      { prompt: "साथी को बताओ कि 29 से 30 जाते समय क्या बदलता है।" },
+    ],
   },
   {
     id: "ws-dec30-3",
@@ -231,6 +343,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Count forward: 25 to 35." },
       { prompt: "Count backward: 42 to 28." },
       { prompt: "Circle every number where the tens digit changes." },
+    ],
+    titleHi: "मिली-जुली दहाई पार करना",
+    focusHi: "कई दहाई सीमाओं पर आगे-पीछे गिनो।",
+    itemsHi: [
+      { prompt: "आगे गिनो: 25 से 35 तक।" },
+      { prompt: "उल्टा गिनो: 42 से 28 तक।" },
+      { prompt: "जहाँ दहाई का अंक बदले वहाँ गोला लगाओ।" },
     ],
   },
   {
@@ -246,6 +365,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "What comes after 39?" },
       { prompt: "Hop: 10, 20, 30, __, 50." },
     ],
+    titleHi: "अगली दहाई का अभ्यास",
+    focusHi: "10, 20, 40 और 60 के बाद की दहाई बताओ।",
+    itemsHi: [
+      { prompt: "19 के बाद क्या आता है?" },
+      { prompt: "39 के बाद क्या आता है?" },
+      { prompt: "कूदो: 10, 20, 30, __, 50।" },
+    ],
   },
   {
     id: "ws-place-1",
@@ -259,6 +385,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Show 245: how many hundreds, tens, ones?" },
       { prompt: "Which is more: 199 or 200? Why?" },
       { prompt: "Write the number: 3 hundreds, 5 tens, 0 ones." },
+    ],
+    titleHi: "सैकड़ा, दहाई, इकाई ग्रिड",
+    focusHi: "स्थानीय मान वाले ब्लॉक या चित्र से तीन अंकों की संख्याएँ बनाओ।",
+    itemsHi: [
+      { prompt: "245 दिखाओ: कितने सैकड़े, कितनी दहाई, कितनी इकाई?" },
+      { prompt: "कौन बड़ी है: 199 या 200? क्यों?" },
+      { prompt: "संख्या लिखो: 3 सैकड़े, 5 दहाई, 0 इकाई।" },
     ],
   },
   {
@@ -274,6 +407,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Swap: 245 vs 254 — what changed?" },
       { prompt: "Write two numbers with 4 in the tens place." },
     ],
+    titleHi: "तीन अंकों की संख्याएँ पढ़ो और बनाओ",
+    focusHi: "संख्याएँ ज़ोर से पढ़ो और जगह उलझने पर दोबारा बनाओ।",
+    itemsHi: [
+      { prompt: "पढ़ो: 108, 350, 499, 500।" },
+      { prompt: "बदलो: 245 बनाम 254 — क्या बदला?" },
+      { prompt: "ऐसी दो संख्याएँ लिखो जिनमें 4 दहाई की जगह पर हो।" },
+    ],
   },
   {
     id: "ws-back-1",
@@ -288,6 +428,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Start at 20. Count back to 15." },
       { prompt: "Fill: 12, 11, __, 9, __." },
     ],
+    titleHi: "उल्टी गिनती की सीढ़ी",
+    focusHi: "सीढ़ी पर एक-एक कदम उल्टा गिनो।",
+    itemsHi: [
+      { prompt: "10 से शुरू करो। 1 तक उल्टा गिनो।" },
+      { prompt: "20 से शुरू करो। 15 तक उल्टा गिनो।" },
+      { prompt: "भरो: 12, 11, __, 9, __।" },
+    ],
   },
   {
     id: "ws-back-2",
@@ -301,6 +448,13 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
       { prompt: "Count back: 32, 31, 30, 29, 28." },
       { prompt: "Fill: 21, 20, __, 18." },
       { prompt: "Start at 40. Count back 5 numbers." },
+    ],
+    titleHi: "दहाई पार करके उल्टी गिनती",
+    focusHi: "दहाई पार करके उल्टा गिनो, जैसे 31 → 29।",
+    itemsHi: [
+      { prompt: "उल्टा गिनो: 32, 31, 30, 29, 28।" },
+      { prompt: "भरो: 21, 20, __, 18।" },
+      { prompt: "40 से शुरू करो। 5 संख्याएँ उल्टी गिनो।" },
     ],
   },
 ];
@@ -317,7 +471,7 @@ export function selectWorksheetTemplate(
   if (!pool.length) return undefined;
   return (
     pool.find((t) => t.tier === tier) ??
-    pool.sort((a, b) => a.tier - b.tier).at(-1) ??
+    pool.sort((a, b) => a.tier - b.tier)[pool.length - 1] ??
     pool[0]
   );
 }

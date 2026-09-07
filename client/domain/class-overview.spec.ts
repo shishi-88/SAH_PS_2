@@ -51,7 +51,7 @@ describe("class overview", () => {
         lastAssessedAt: null,
       },
     ];
-    const report = toAggregatedReport(students, [gap()]);
+    const report = toAggregatedReport(students, [gap({})]);
     const blob = JSON.stringify(report);
     expect(blob).not.toContain("Secret Name");
     expect(blob).not.toContain("s1");

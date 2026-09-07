@@ -17,6 +17,9 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     label: "Letter-sound gap: b/d confusion",
     description:
       "Mixes the sounds or shapes of b and d, often at the beginning of words.",
+    labelHi: "अक्षर-ध्वनि अंतराल: ब/द में उलझन",
+    descriptionHi:
+      "ब और द की ध्वनि या आकृति में उलझन होती है, अक्सर शब्द के शुरू में।",
     mappingSource: "demo",
     mappingNote:
       "Demo mapping to foundational letter–sound correspondence (Class 1–2 literacy). Insert verified NIPUN codes here when available.",
@@ -29,6 +32,9 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     label: "Consonant blending gap: bl/cl/st",
     description:
       "Drops or swaps the second consonant in blends such as bl, cl, and st.",
+    labelHi: "व्यंजन संयोजन अंतराल: bl/cl/st",
+    descriptionHi:
+      "bl, cl और st जैसे संयोजनों में दूसरा व्यंजन छूट जाता है या बदल जाता है।",
     mappingSource: "demo",
     mappingNote:
       "Demo mapping to blending/cluster decoding, a common Class 1–3 literacy outcome. Not an official NIPUN code.",
@@ -41,6 +47,9 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     label: "Beginning-of-word accuracy gap",
     description:
       "Errors cluster on the first sound or letter of words rather than the rest of the word.",
+    labelHi: "शब्द-आरंभ सटीकता अंतराल",
+    descriptionHi:
+      "गलतियाँ शब्द के बाकी हिस्से की बजाय पहली ध्वनि या अक्षर पर केंद्रित होती हैं।",
     mappingSource: "demo",
     mappingNote:
       "Demo pattern tag for beginning/middle/end error location. Useful for grouping practice; not an official competency code.",
@@ -53,6 +62,9 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     label: "End-of-word accuracy gap",
     description:
       "Words start correctly but the last sound is dropped, swapped, or guessed.",
+    labelHi: "शब्द-अंत सटीकता अंतराल",
+    descriptionHi:
+      "शब्द सही शुरू होते हैं पर अंतिम ध्वनि छूटती, बदलती या अंदाज़ से बोली जाती है।",
     mappingSource: "demo",
     mappingNote:
       "Demo pattern tag for ending-sound attention. Replace with verified mapping if an official code is added.",
@@ -65,6 +77,9 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     label: "Sight-word recall gap",
     description:
       "High-frequency words are sounded letter-by-letter instead of recognised as wholes.",
+    labelHi: "दृष्टि-शब्द स्मरण अंतराल",
+    descriptionHi:
+      "सामान्य शब्दों को पूरा पहचानने की बजाय अक्षर-अक्षर करके पढ़ा जाता है।",
     mappingSource: "demo",
     mappingNote:
       "Demo mapping to high-frequency word recognition in early literacy. Not a verified NIPUN identifier.",
@@ -77,6 +92,9 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     label: "Multisyllable decoding gap",
     description:
       "Hesitates or loses accuracy on words with two or more syllables.",
+    labelHi: "बहुअक्षरी शब्द पढ़ने का अंतराल",
+    descriptionHi:
+      "दो या अधिक अक्षरों वाले शब्दों पर रुकावट या गलती होती है।",
     mappingSource: "demo",
     mappingNote:
       "Demo mapping to longer-word decoding in Class 2–3. Official codes can be added without changing diagnosis tags.",
@@ -88,6 +106,8 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     grades: [1, 2],
     label: "Decade-transition gap: 9→10",
     description: "Hesitates or miscounts when crossing from 9 to 10.",
+    labelHi: "दहाई-संक्रमण अंतराल: 9→10",
+    descriptionHi: "9 से 10 पर जाते समय रुकावट या गलत गिनती होती है।",
     mappingSource: "demo",
     mappingNote:
       "Demo mapping to counting across tens (NIPUN-style number sense). Not an official competency ID.",
@@ -100,6 +120,9 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     label: "Decade-transition gap: 29→30",
     description:
       "Pause or error when the tens digit changes, for example 29 to 30.",
+    labelHi: "दहाई-संक्रमण अंतराल: 29→30",
+    descriptionHi:
+      "दहाई का अंक बदलने पर (जैसे 29 से 30) रुकावट या गलती होती है।",
     mappingSource: "demo",
     mappingNote:
       "Demo mapping to decade jumps within 100. Structure is ready for verified NIPUN codes.",
@@ -112,6 +135,9 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     label: "Decade-transition gap",
     description:
       "Counting is steady within a ten, then slips when the next ten begins.",
+    labelHi: "दहाई-संक्रमण अंतराल",
+    descriptionHi:
+      "एक दहाई के भीतर गिनती स्थिर रहती है, पर अगली दहाई शुरू होते ही फिसल जाती है।",
     mappingSource: "demo",
     mappingNote:
       "Catch-all demo tag for other decade boundaries (19→20, 39→40, …).",
@@ -124,6 +150,9 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     label: "Place value gap: tens vs hundreds",
     description:
       "A digit’s value is mixed up depending on its place in a 2- or 3-digit number.",
+    labelHi: "स्थानीय मान अंतराल: दहाई बनाम सैकड़ा",
+    descriptionHi:
+      "दो या तीन अंकों की संख्या में अंक का मान उसकी जगह के हिसाब से उलझ जाता है।",
     mappingSource: "demo",
     mappingNote:
       "Demo mapping to place-value understanding. Insert verified codes when available.",
@@ -136,6 +165,9 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     label: "Backward counting gap",
     description:
       "Forward counting is steady, but the sequence slips when counting backward.",
+    labelHi: "उल्टी गिनती अंतराल",
+    descriptionHi:
+      "आगे की गिनती स्थिर है, पर उल्टी गिनती में क्रम फिसल जाता है।",
     mappingSource: "demo",
     mappingNote:
       "Demo mapping to reverse counting / number sequence. Not a verified official code.",

@@ -44,6 +44,11 @@ export interface AssessmentPrompt {
   instruction: string;
   displayText: string;
   tokens: PromptToken[];
+  /** Hindi equivalents. Falls back to the English fields when absent. */
+  titleHi?: string;
+  instructionHi?: string;
+  displayTextHi?: string;
+  tokensHi?: PromptToken[];
 }
 
 export interface TokenObservation {
@@ -103,6 +108,10 @@ export interface WorksheetInstance {
   title: string;
   focus: string;
   items: WorksheetItem[];
+  /** Hindi equivalents captured at assignment time. Falls back to English. */
+  titleHi?: string;
+  focusHi?: string;
+  itemsHi?: WorksheetItem[];
 }
 
 export interface SyncQueueItem {
@@ -133,6 +142,9 @@ export interface CompetencyGapType {
   mappingSource: MappingSource;
   mappingNote: string;
   tags: string[];
+  /** Hindi equivalents. Falls back to the English fields when absent. */
+  labelHi?: string;
+  descriptionHi?: string;
 }
 
 export interface WorksheetTemplate {
@@ -144,4 +156,8 @@ export interface WorksheetTemplate {
   title: string;
   focus: string;
   items: WorksheetItem[];
+  /** Hindi equivalents. Falls back to the English fields when absent. */
+  titleHi?: string;
+  focusHi?: string;
+  itemsHi?: WorksheetItem[];
 }

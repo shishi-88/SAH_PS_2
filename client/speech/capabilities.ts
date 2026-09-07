@@ -1,3 +1,5 @@
+import { t, type Language } from "@/lib/i18n";
+
 export type SpeechCapability = {
   canRecordAudio: boolean;
   hasWebSpeechRecognition: boolean;
@@ -5,7 +7,7 @@ export type SpeechCapability = {
   note: string;
 };
 
-export function inspectSpeechCapability(): SpeechCapability {
+export function inspectSpeechCapability(lang: Language = "en"): SpeechCapability {
   const canRecordAudio =
     typeof window !== "undefined" &&
     typeof MediaRecorder !== "undefined" &&
@@ -23,8 +25,8 @@ export function inspectSpeechCapability(): SpeechCapability {
     hasWebSpeechRecognition: Boolean(SpeechRecognition),
     webSpeechLikelyNeedsNetwork: true,
     note: SpeechRecognition
-      ? "This browser may offer dictation. It usually needs a network connection and is not guaranteed offline. Diagnosis still works if you mark what you heard."
-      : "On-device speech-to-text is not available here. Record if you wish, then mark errors by hand — that path works fully offline.",
+      ? t(lang, "assess.speechWithRec")
+      : t(lang, "assess.speechNoRec"),
   };
 }
 

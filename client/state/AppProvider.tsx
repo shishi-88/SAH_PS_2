@@ -14,6 +14,7 @@ import { createId, daysFrom } from "@/domain/ids";
 import { markAssessedInRotation } from "@/domain/rotation";
 import { nextTier, selectWorksheetTemplate } from "@/domain/worksheet-bank";
 import { toAggregatedReport } from "@/domain/class-overview";
+import { t, type Language } from "@/lib/i18n";
 import type {
   AppSnapshot,
   Assessment,
@@ -28,10 +29,12 @@ import type { AggregatedGapReportResponse } from "@shared/api";
 interface AppContextValue {
   ready: boolean;
   error: string | null;
+  language: Language;
+  setLanguage: (lang: Language) => void;
   snapshot: AppSnapshot;
   save: (next: AppSnapshot) => Promise<void>;
   updateClassroom: (patch: Partial<Classroom>) => Promise<void>;
-  upsertStudent: (student: Omit<Student, "id" | "classId" | "createdAt"> & { id?: string }) => Promise<Student>;
+  upsertStudent: (student: Omit<Student, "id" | "classId" | "createdAt" | "lastAssessedAt"> & { id?: string }) => Promise<Student>;
   removeStudent: (id: string) => Promise<void>;
   recordAssessment: (input: {
     studentId: string;
@@ -56,6 +59,13 @@ async function persist(next: AppSnapshot): Promise<AppSnapshot> {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [language, setLanguageState] = useState<Language>(() => {
+    try {
+      return localStorage.getItem("sahayak-lang") === "hi" ? "hi" : "en";
+    } catch {
+      return "en";
+    }
+  });
   const [snapshot, setSnapshot] = useState<AppSnapshot>(() => ({
     classroom: emptyClassroom(),
     students: [],
@@ -70,6 +80,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const stored = await persist(next);
     setSnapshot(stored);
   }, []);
+
+  const setLanguage = useCallback((lang: Language) => {
+    try {
+      localStorage.setItem("sahayak-lang", lang);
+    } catch {
+      /* storage unavailable (private mode) — language stays for this session */
+    }
+    setLanguageState(lang);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +122,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return {
       ready,
       error,
+      language,
+      setLanguage,
       snapshot,
       save,
       updateClassroom: async (patch) => {
@@ -295,7 +320,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ? [...snapshot.syncQueue]
           : [...snapshot.syncQueue, ...pending];
         let ok = true;
-        let message = "Synced anonymised gap counts.";
+        let message = t(language, "sync.flushOk");
         for (const item of pending) {
           try {
             const res = await fetch("/api/reports/gaps", {
@@ -312,8 +337,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             });
           } catch (e) {
             ok = false;
-            message =
-              "Could not reach the reporting endpoint. The queue stays on this phone until you try again.";
+            message = t(language, "sync.flushFail");
             queue = upsertQueue(queue, {
               ...item,
               status: "failed",
@@ -329,7 +353,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await save(demo);
       },
     };
-  }, [ready, error, snapshot, save]);
+  }, [ready, error, language, setLanguage, snapshot, save]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
@@ -358,6 +382,9 @@ function personalizeSheet(
     title: template.title,
     focus: `${template.focus} · for ${student.name.split(" ")[0]}`,
     items: template.items,
+    titleHi: template.titleHi,
+    focusHi: template.focusHi ? `${template.focusHi} · ${student.name.split(" ")[0]} के लिए` : undefined,
+    itemsHi: template.itemsHi,
   };
 }
 

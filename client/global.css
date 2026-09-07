@@ -7,56 +7,61 @@
   /**
    * ListenRight theme
    *
-   * Purple and orange palette. Light mode only, by design.
+   * Navy + orange, flat colors only. No purple, no gradients, no glow,
+   * no pastel wash. Navy carries structure/nav/primary CTA.
+   * Orange carries progress/attention. Background reads as a real
+   * warm neutral, not flat gray. Light mode only, by design.
    * tailwind.config.ts expects the following color variables to be expressed as HSL values.
    * A different format will require also updating the theme in tailwind.config.ts.
    */
   :root {
-    --background: 268 55% 78%;
-    --foreground: 265 30% 16%;
-    --card: 270 45% 98%;
-    --card-foreground: 265 30% 16%;
-    --popover: 270 45% 98%;
-    --popover-foreground: 265 30% 16%;
+    --background: 30 25% 93%;
+    --foreground: 215 35% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 35% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 35% 14%;
 
-    /* Purple — main actions / navigation */
-    --primary: 265 55% 48%;
+    /* Navy - structure / nav / primary CTA */
+    --primary: 215 55% 24%;
     --primary-foreground: 0 0% 100%;
 
-    /* Orange — secondary sections */
-    --secondary: 28 85% 55%;
+    /* Orange - progress / secondary emphasis */
+    --secondary: 24 92% 54%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 268 35% 72%;
-    --muted-foreground: 265 12% 40%;
-    --accent: 268 45% 74%;
-    --accent-foreground: 265 30% 16%;
+    --muted: 30 20% 87%;
+    --muted-foreground: 215 12% 40%;
+    --accent: 24 80% 90%;
+    --accent-foreground: 24 70% 22%;
 
-    /* Coral-red — priority / errors, distinct from orange secondary */
-    --destructive: 350 65% 52%;
+    /* Red - priority / errors, distinct from orange secondary */
+    --destructive: 355 70% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 268 30% 65%;
-    --input: 268 30% 65%;
-    --ring: 265 55% 48%;
-    --radius: 1rem;
+    --border: 30 18% 80%;
+    --input: 30 18% 80%;
+    --ring: 215 55% 24%;
+    --radius: 0.375rem;
 
-    /* Gap-status indicators: soft, low-saturation, never traffic-light red/green */
-    --status-priority: 350 65% 68%;               /* Coral-red */
-    --status-priority-foreground: 350 55% 22%;
-    --status-attention: 40 90% 58%;                /* Amber-yellow */
-    --status-attention-foreground: 36 60% 18%;
-    --status-ontrack: 165 45% 40%;                 /* Teal-green */
-    --status-ontrack-foreground: 165 45% 14%;
+    /* Gap-status indicators */
+    --status-priority: 355 70% 52%;                /* Red */
+    --status-priority-foreground: 0 0% 100%;
+    --status-attention: 32 90% 48%;                 /* Amber-orange, darker for contrast */
+    --status-attention-foreground: 0 0% 100%;
+    --status-ontrack: 152 50% 30%;                  /* Green */
+    --status-ontrack-foreground: 0 0% 100%;
 
-    --sidebar-background: 270 45% 98%;
-    --sidebar-foreground: 265 30% 16%;
-    --sidebar-primary: 265 55% 48%;
+    --shadow-color: 215 40% 15%;
+
+    --sidebar-background: 215 45% 18%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 24 92% 54%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 268 45% 76%;
-    --sidebar-accent-foreground: 265 30% 16%;
-    --sidebar-border: 268 30% 68%;
-    --sidebar-ring: 265 55% 48%;
+    --sidebar-accent: 215 40% 26%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 215 35% 28%;
+    --sidebar-ring: 24 92% 54%;
   }
 }
 @layer base {
@@ -87,6 +92,11 @@
     overflow-x: auto;
     white-space: pre;
   }
+
+  .shadow-soft {
+    box-shadow: 0 2px 8px -2px hsl(var(--shadow-color) / 0.2);
+  }
+
   @media print {
     nav,
     header,

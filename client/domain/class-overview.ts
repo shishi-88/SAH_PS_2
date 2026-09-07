@@ -1,7 +1,8 @@
 import type { AggregatedGapReport, ClassSizeBand } from "@shared/api";
+import { t, localizedGapType, type Language } from "@/lib/i18n";
 import { getGapType } from "./competency-registry";
 import { weeksBetween } from "./ids";
-import type { GapUrgency, SkillGapRecord, Student } from "./types";
+import type { GapUrgency, Grade, SkillGapRecord, Student } from "./types";
 
 export interface GapGroup {
   gapTypeId: string;
@@ -85,18 +86,30 @@ export function buildGapGroups(
   });
 }
 
-export function suggestSmallGroups(groups: GapGroup[], limit = 3): SuggestedGroup[] {
-  return groups.slice(0, limit).map((g) => ({
-    title: g.label.replace(/ gap.*$/i, ""),
-    reason:
+export function suggestSmallGroups(
+  groups: GapGroup[],
+  limit = 3,
+  lang: Language = "en",
+): SuggestedGroup[] {
+  return groups.slice(0, limit).map((g) => {
+    const type = getGapType(g.gapTypeId);
+    const label = type ? localizedGapType(type, lang).label : g.label;
+    const title =
+      lang === "hi" ? label.replace(/ अंतराल.*$/u, "") : label.replace(/ gap.*$/i, "");
+    const n = g.studentCount;
+    const reason =
       g.urgency === "persistent"
-        ? `${g.studentCount} students · extra time needed (3+ weeks)`
+        ? t(lang, "sg.persistent", { n })
         : g.urgency === "watch"
-          ? `${g.studentCount} students · keep practising together`
-          : `${g.studentCount} students · newly noticed this week`,
-    gapTypeId: g.gapTypeId,
-    studentIds: g.studentIds,
-  }));
+          ? t(lang, "sg.watch", { n })
+          : t(lang, "sg.new", { n });
+    return {
+      title,
+      reason,
+      gapTypeId: g.gapTypeId,
+      studentIds: g.studentIds,
+    };
+  });
 }
 
 export function classSizeBand(count: number): ClassSizeBand {
@@ -128,7 +141,7 @@ export function toAggregatedReport(
         ...new Set(
           g.studentIds
             .map((id) => students.find((s) => s.id === id)?.grade)
-            .filter((n): n is number => typeof n === "number"),
+            .filter((n): n is Grade => typeof n === "number"),
         ),
       ].sort(),
     })),

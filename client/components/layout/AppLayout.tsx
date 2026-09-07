@@ -1,23 +1,51 @@
 import { Link, useLocation } from "react-router-dom";
 import { BookOpen, House, ClipboardList, RefreshCw, Mic, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
+import { useApp } from "@/state/AppProvider";
 
 const navItems = [
-  { to: "/", label: "Home", icon: House },
-  { to: "/class", label: "Class", icon: Users },
-  { to: "/assess", label: "Assess", icon: Mic, primary: true },
-  { to: "/worksheets", label: "Sheets", icon: ClipboardList },
-  { to: "/sync", label: "Sync", icon: RefreshCw },
-];
+  { to: "/", labelKey: "nav.home", icon: House },
+  { to: "/class", labelKey: "nav.class", icon: Users },
+  { to: "/assess", labelKey: "nav.assess", icon: Mic, primary: true },
+  { to: "/worksheets", labelKey: "nav.sheets", icon: ClipboardList },
+  { to: "/sync", labelKey: "nav.sync", icon: RefreshCw },
+] as const;
+
+function LangButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full px-2 py-1 text-xs font-bold leading-none",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { language, setLanguage } = useApp();
   const printHide = location.pathname.startsWith("/worksheets/");
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className={cn("sticky top-0 z-30 border-b border-border bg-background", printHide && "print:hidden")}>
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3.5 sm:px-6">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3.5 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/15 text-primary">
               <BookOpen className="h-5 w-5" strokeWidth={2.2} />
@@ -26,9 +54,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Sahayak
             </span>
           </Link>
-          <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground sm:inline">
-            Works offline · saved on this phone
-          </span>
+          <div className="flex items-center gap-2.5">
+            <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground sm:inline">
+              {t(language, "header.offline")}
+            </span>
+            <div
+              role="group"
+              aria-label={t(language, "header.language")}
+              className="flex items-center gap-0.5 rounded-full border border-border bg-card p-0.5"
+            >
+              <LangButton active={language === "en"} onClick={() => setLanguage("en")}>
+                EN
+              </LangButton>
+              <LangButton active={language === "hi"} onClick={() => setLanguage("hi")}>
+                हिंदी
+              </LangButton>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -38,7 +80,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <nav className={cn("fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card", printHide && "print:hidden")}>
         <div className="mx-auto flex max-w-3xl items-stretch justify-between px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-6">
-          {navItems.map(({ to, label, icon: Icon, primary }) => {
+          {navItems.map(({ to, labelKey, icon: Icon, primary }) => {
+            const label = t(language, labelKey);
             const active =
               location.pathname === to ||
               (to !== "/" && location.pathname.startsWith(to));

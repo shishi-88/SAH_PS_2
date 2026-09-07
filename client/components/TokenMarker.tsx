@@ -1,4 +1,6 @@
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
+import { useApp } from "@/state/AppProvider";
 import type { AssessmentPrompt, TokenError, TokenObservation } from "@/domain/types";
 
 const cycle: Array<TokenError | null> = [null, "wrong", "skipped", "hesitation"];
@@ -20,11 +22,10 @@ export default function TokenMarker({
     onChange(nextError ? [...rest, { tokenIndex: index, error: nextError }] : rest);
   }
 
+  const { language } = useApp();
   return (
     <div>
-      <p className="mb-3 text-sm text-muted-foreground">
-        Tap a word each time you hear a slip. Cycle: clear → wrong → skipped → pause.
-      </p>
+      <p className="mb-3 text-sm text-muted-foreground">{t(language, "marker.hint")}</p>
       <div className="flex flex-wrap gap-2">
         {prompt.tokens.map((token, index) => {
           const obs = observations.find((o) => o.tokenIndex === index);

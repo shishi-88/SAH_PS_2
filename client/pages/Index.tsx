@@ -7,16 +7,17 @@ import { useApp } from "@/state/AppProvider";
 import { rotationView } from "@/domain/rotation";
 import { buildGapGroups, suggestSmallGroups, urgencyForGap } from "@/domain/class-overview";
 import { getGapType } from "@/domain/competency-registry";
+import { localizedGapType, t } from "@/lib/i18n";
 
 export default function Index() {
-  const { ready, error, snapshot } = useApp();
-  if (!ready) return <p className="py-16 text-center text-muted-foreground">Opening class records…</p>;
+  const { ready, error, snapshot, language } = useApp();
+  if (!ready) return <p className="py-16 text-center text-muted-foreground">{t(language, "home.opening")}</p>;
   if (error) return <p className="py-16 text-center text-destructive">{error}</p>;
 
   const { classroom, students, gaps } = snapshot;
   const rotation = rotationView(classroom, students);
   const groups = buildGapGroups(gaps);
-  const suggested = suggestSmallGroups(groups, 3);
+  const suggested = suggestSmallGroups(groups, 3, language);
   const due = gaps.filter(
     (g) => g.status === "active" && new Date(g.reassessmentDueAt).getTime() <= Date.now(),
   );
@@ -40,9 +41,9 @@ export default function Index() {
           <Mic className="h-7 w-7" strokeWidth={2.2} />
         </span>
         <span className="flex-1">
-          <span className="block font-heading text-lg font-bold">Assess a student</span>
+          <span className="block font-heading text-lg font-bold">{t(language, "home.assessCta")}</span>
           <span className="block text-sm text-primary-foreground/85">
-            Reading or numeracy · mark what you heard
+            {t(language, "home.assessSub")}
           </span>
         </span>
       </Link>
@@ -54,9 +55,9 @@ export default function Index() {
               <CalendarCheck2 className="h-5 w-5" strokeWidth={2} />
             </span>
             <div>
-              <p className="font-heading text-base font-bold text-foreground">This rotation</p>
+              <p className="font-heading text-base font-bold text-foreground">{t(language, "home.rotation")}</p>
               <p className="text-sm text-muted-foreground">
-                {rotation.assessedCount} of {rotation.total} students heard
+                {t(language, "home.heard", { done: rotation.assessedCount, total: rotation.total })}
               </p>
             </div>
           </div>
@@ -69,8 +70,12 @@ export default function Index() {
         </div>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           {rotation.remaining === 0
-            ? "Everyone in this rotation has been assessed. The next round starts automatically."
-            : `About ${rotation.studentsPerDay} students a day → roughly ${rotation.schoolDaysLeft} more school day${rotation.schoolDaysLeft === 1 ? "" : "s"} to finish the class.`}
+            ? t(language, "home.rotationDone")
+            : t(language, "home.aboutRotation", {
+                perDay: rotation.studentsPerDay,
+                days: rotation.schoolDaysLeft,
+                s: rotation.schoolDaysLeft === 1 ? "" : "s",
+              })}
         </p>
       </section>
 
@@ -78,7 +83,7 @@ export default function Index() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4 text-secondary" strokeWidth={2.2} />
-            <h2 className="font-heading text-lg font-bold">Ready for a second listen</h2>
+            <h2 className="font-heading text-lg font-bold">{t(language, "home.due")}</h2>
           </div>
           {due.map((g) => {
             const student = students.find((s) => s.id === g.studentId);
@@ -93,7 +98,7 @@ export default function Index() {
                 <StudentAvatar name={student.name} tint={student.avatarTint} />
                 <div className="min-w-0 flex-1">
                   <p className="font-heading font-bold">{student.name}</p>
-                  <p className="text-sm text-muted-foreground">{type.label}</p>
+                  <p className="text-sm text-muted-foreground">{localizedGapType(type, language).label}</p>
                 </div>
                 <StatusBadge urgency={urgencyForGap(g)} />
               </Link>
@@ -102,21 +107,20 @@ export default function Index() {
         </section>
       )}
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users2 className="h-4 w-4 text-secondary" strokeWidth={2.2} />
-            <h2 className="font-heading text-lg font-bold">Small groups this week</h2>
+      <section className="space-y-3">          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users2 className="h-4 w-4 text-secondary" strokeWidth={2.2} />
+              <h2 className="font-heading text-lg font-bold">{t(language, "home.smallGroups")}</h2>
+            </div>
+            <Link to="/class" className="text-sm font-semibold text-primary">
+              {t(language, "home.classWall")}
+            </Link>
           </div>
-          <Link to="/class" className="text-sm font-semibold text-primary">
-            Class wall
-          </Link>
-        </div>
-        {suggested.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card px-5 py-8 text-center text-sm text-muted-foreground">
-            No open gaps yet — assess a few students to see suggested groups.
-          </div>
-        ) : (
+          {suggested.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card px-5 py-8 text-center text-sm text-muted-foreground">
+              {t(language, "home.noGroups")}
+            </div>
+          ) : (
           suggested.map((g) => (
             <div key={g.gapTypeId} className="rounded-2xl border border-border bg-card p-4 shadow-soft">
               <p className="font-heading text-[15px] font-bold">{g.title}</p>
@@ -128,17 +132,17 @@ export default function Index() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-heading text-lg font-bold">Your students</h2>
+          <h2 className="font-heading text-lg font-bold">{t(language, "home.yourStudents")}</h2>
           <Button asChild size="sm" variant="secondary" className="rounded-full">
             <Link to="/students/new">
               <Plus className="h-4 w-4" />
-              Add
+              {t(language, "home.add")}
             </Link>
           </Button>
         </div>
         {roster.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border px-5 py-8 text-center text-sm text-muted-foreground">
-            Add the first student to begin.
+            {t(language, "home.addFirst")}
           </p>
         ) : (
           roster.map((student) => {
@@ -154,8 +158,8 @@ export default function Index() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-heading text-[15px] font-bold">{student.name}</p>
                     <p className="truncate text-sm text-muted-foreground">
-                      Grade {student.grade} · Roll {student.rollNo}
-                      {!student.lastAssessedAt ? " · Not yet assessed" : ""}
+                      {t(language, "home.gradeRoll", { grade: student.grade, roll: student.rollNo })}
+                      {!student.lastAssessedAt ? ` · ${t(language, "home.notAssessed")}` : ""}
                     </p>
                     {top && (
                       <div className="mt-1.5">
@@ -165,7 +169,7 @@ export default function Index() {
                   </div>
                 </Link>
                 <Button asChild size="sm" variant="secondary" className="shrink-0 rounded-full">
-                  <Link to={`/assess?student=${student.id}`}>Assess</Link>
+                  <Link to={`/assess?student=${student.id}`}>{t(language, "home.assess")}</Link>
                 </Button>
               </div>
             );

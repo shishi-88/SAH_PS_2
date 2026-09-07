@@ -1,17 +1,19 @@
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
+import { useApp } from "@/state/AppProvider";
 import type { GapLifecycle, GapUrgency } from "@/domain/types";
 
-const urgencyConfig: Record<GapUrgency, { label: string; classes: string }> = {
+const urgencyConfig: Record<GapUrgency, { labelKey: string; classes: string }> = {
   persistent: {
-    label: "Needs extra time",
+    labelKey: "sb.persistent",
     classes: "bg-status-priority/25 text-status-priority-foreground",
   },
   watch: {
-    label: "Keep practising",
+    labelKey: "sb.watch",
     classes: "bg-status-attention/30 text-status-attention-foreground",
   },
   new: {
-    label: "Newly noticed",
+    labelKey: "sb.new",
     classes: "bg-primary/15 text-primary",
   },
 };
@@ -25,6 +27,7 @@ export default function StatusBadge({
   status?: GapLifecycle;
   className?: string;
 }) {
+  const { language } = useApp();
   if (status === "resolved") {
     return (
       <span
@@ -33,7 +36,7 @@ export default function StatusBadge({
           className,
         )}
       >
-        Closed
+        {t(language, "sb.closed")}
       </span>
     );
   }
@@ -46,7 +49,7 @@ export default function StatusBadge({
         className,
       )}
     >
-      {config.label}
+      {t(language, config.labelKey)}
     </span>
   );
 }

@@ -1,3 +1,4 @@
+import { t, localizedGapType, type Language } from "@/lib/i18n";
 import { COMPETENCY_GAP_TYPES, getGapType } from "./competency-registry";
 import type {
   AnalysisSource,
@@ -65,7 +66,7 @@ export function matchTranscriptToObservations(
 export function diagnose(
   prompt: AssessmentPrompt,
   evidence: DiagnosisEvidence,
-  options?: { transcriptFromWebSpeech?: boolean },
+  options?: { transcriptFromWebSpeech?: boolean; lang?: Language },
 ): DiagnosisResult {
   const source: AnalysisSource = options?.transcriptFromWebSpeech
     ? "web-speech-assist"
@@ -77,8 +78,7 @@ export function diagnose(
     return {
       gapTypeIds: [],
       primaryGapTypeId: null,
-      summary:
-        "No specific errors were marked on this sample. You can choose a gap from the list, or save this as a clear sample.",
+      summary: t(options?.lang ?? "en", "diag.noMarks"),
       analysisSource: "teacher-assisted",
       evidenceNotes: [],
     };
@@ -131,11 +131,13 @@ export function diagnose(
   const ranked = [...scores.entries()].sort((a, b) => b[1] - a[1]);
   const gapTypeIds = ranked.slice(0, 3).map(([id]) => id);
   const primary = gapTypeIds[0] ?? null;
-  const primaryGap = primary ? getGapType(primary) : null;
+  const lang = options?.lang ?? "en";
+  const primaryType = primary ? getGapType(primary) : null;
+  const primaryGap = primaryType ? localizedGapType(primaryType, lang) : null;
 
   const summary = primaryGap
-    ? `Heard a pattern matching “${primaryGap.label}”.`
-    : "Marks were noted, but they did not map cleanly to a named gap. You can pick one from the list.";
+    ? t(lang, "diag.pattern", { label: primaryGap.label })
+    : t(lang, "diag.noMatch");
 
   return {
     gapTypeIds,
