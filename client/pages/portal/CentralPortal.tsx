@@ -403,12 +403,49 @@ export default function CentralPortal() {
     type: "success" | "info" | "error";
   } | null>(null);
 
-  // Central Database entities
-  const [classes, setClasses] = useState<ClassEntity[]>([]);
-  const [students, setStudents] = useState<StudentEntity[]>([]);
-  const [learningGaps, setLearningGaps] = useState<LearningGapEntity[]>([]);
+  // Central Database entities (Pre-populated with rich FLN dataset and synchronized with localStorage)
+  const initialDemo = useMemo(() => generateDefaultDemoDataset(), []);
+  const [classes, setClasses] = useState<ClassEntity[]>(() => {
+    try {
+      const saved = localStorage.getItem("sahayak_portal_classes");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return initialDemo.classes;
+  });
+  const [students, setStudents] = useState<StudentEntity[]>(() => {
+    try {
+      const saved = localStorage.getItem("sahayak_portal_students");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return initialDemo.students;
+  });
+  const [learningGaps, setLearningGaps] = useState<LearningGapEntity[]>(() => {
+    try {
+      const saved = localStorage.getItem("sahayak_portal_gaps");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return initialDemo.learningGaps;
+  });
   const [syncLogs, setSyncLogs] = useState<SyncLogEntry[]>([]);
-  const [allocatedWorksheets, setAllocatedWorksheets] = useState<WorksheetInstance[]>([]);
+  const [allocatedWorksheets, setAllocatedWorksheets] = useState<WorksheetInstance[]>(() => {
+    try {
+      const saved = localStorage.getItem("sahayak_portal_worksheets");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return initialDemo.worksheets;
+  });
   const [supabaseStatus, setSupabaseStatus] = useState<{
     configured: boolean;
     connected: boolean;
@@ -574,6 +611,14 @@ export default function CentralPortal() {
       setSelectedStatusFilter("all");
       setSearchQuery("");
 
+      // Immediately persist to localStorage
+      try {
+        localStorage.setItem("sahayak_portal_classes", JSON.stringify(demo.classes));
+        localStorage.setItem("sahayak_portal_students", JSON.stringify(demo.students));
+        localStorage.setItem("sahayak_portal_gaps", JSON.stringify(demo.learningGaps));
+        localStorage.setItem("sahayak_portal_worksheets", JSON.stringify(demo.worksheets));
+      } catch {}
+
       // Background triggers for server & local IndexedDB
       try {
         await fetch("/api/demo/seed", { method: "POST" });
@@ -599,6 +644,31 @@ export default function CentralPortal() {
       setSeeding(false);
     }
   };
+
+  // Persist state to localStorage on updates for seamless reliability
+  useEffect(() => {
+    if (classes.length > 0) {
+      try { localStorage.setItem("sahayak_portal_classes", JSON.stringify(classes)); } catch {}
+    }
+  }, [classes]);
+
+  useEffect(() => {
+    if (students.length > 0) {
+      try { localStorage.setItem("sahayak_portal_students", JSON.stringify(students)); } catch {}
+    }
+  }, [students]);
+
+  useEffect(() => {
+    if (learningGaps.length > 0) {
+      try { localStorage.setItem("sahayak_portal_gaps", JSON.stringify(learningGaps)); } catch {}
+    }
+  }, [learningGaps]);
+
+  useEffect(() => {
+    if (allocatedWorksheets.length > 0) {
+      try { localStorage.setItem("sahayak_portal_worksheets", JSON.stringify(allocatedWorksheets)); } catch {}
+    }
+  }, [allocatedWorksheets]);
 
   // Sync snapshot worksheets with allocatedWorksheets on initial load
   useEffect(() => {
@@ -1593,8 +1663,8 @@ export default function CentralPortal() {
                     <Database className="h-5 w-5 text-primary" />
                     <h2 className="font-heading font-bold text-lg text-foreground">
                       {language === "hi"
-                        ? "शिक्षक मोबाइल PWA $\\to$ केंद्रीय प्रबंधन पाइपलाइन"
-                        : "Teacher Mobile PWA $\\to$ Central Management Pipeline"}
+                        ? "शिक्षक मोबाइल ऐप → केंद्रीय प्रबंधन पाइपलाइन"
+                        : "Teacher Mobile App → Central Management Hub"}
                     </h2>
                   </div>
                   <span className="badge-pill bg-emerald-50 text-emerald-800 border border-emerald-200">
