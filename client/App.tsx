@@ -31,15 +31,26 @@ const App = () => (
       <AppProvider>
         <BrowserRouter>
           <Routes>
-            {/* Dedicated Central Web Portal Dashboard (Server Data Hub) */}
+            {/* Primary Central Web Portal Dashboard (Default for Web App & Vercel Root) */}
+            <Route path="/" element={<CentralPortal />} />
             <Route path="/portal" element={<CentralPortal />} />
             <Route path="/dashboard" element={<CentralPortal />} />
             <Route path="/analytics" element={<CentralPortal />} />
             <Route path="/admin" element={<CentralPortal />} />
+            <Route path="/reports" element={<CentralPortal />} />
+            <Route path="/roster" element={<CentralPortal />} />
 
-            {/* Teacher Mobile App Experience */}
+            {/* Mobile App Experience under /mobile and /app */}
             <Route
-              path="/*"
+              path="/mobile"
+              element={
+                <AppLayout>
+                  <Index />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/mobile/*"
               element={
                 <AppLayout>
                   <Routes>
@@ -58,6 +69,103 @@ const App = () => (
                 </AppLayout>
               }
             />
+            <Route
+              path="/app/*"
+              element={
+                <AppLayout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/class" element={<ClassOverview />} />
+                    <Route path="/class/grade/:grade" element={<ClassGrade />} />
+                    <Route path="/assess" element={<Assess />} />
+                    <Route path="/worksheets" element={<Worksheets />} />
+                    <Route path="/worksheets/:id" element={<WorksheetDetail />} />
+                    <Route path="/students/new" element={<StudentForm />} />
+                    <Route path="/students/:id" element={<StudentDetail />} />
+                    <Route path="/students/:id/edit" element={<StudentForm />} />
+                    <Route path="/sync" element={<Sync />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </AppLayout>
+              }
+            />
+
+            {/* Direct Mobile Feature URLs */}
+            <Route
+              path="/class"
+              element={
+                <AppLayout>
+                  <ClassOverview />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/class/grade/:grade"
+              element={
+                <AppLayout>
+                  <ClassGrade />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/assess"
+              element={
+                <AppLayout>
+                  <Assess />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/worksheets"
+              element={
+                <AppLayout>
+                  <Worksheets />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/worksheets/:id"
+              element={
+                <AppLayout>
+                  <WorksheetDetail />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/students/new"
+              element={
+                <AppLayout>
+                  <StudentForm />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/students/:id"
+              element={
+                <AppLayout>
+                  <StudentDetail />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/students/:id/edit"
+              element={
+                <AppLayout>
+                  <StudentForm />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/sync"
+              element={
+                <AppLayout>
+                  <Sync />
+                </AppLayout>
+              }
+            />
+
+            {/* Fallback */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </AppProvider>

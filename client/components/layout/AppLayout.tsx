@@ -6,6 +6,7 @@ import {
   RefreshCw,
   Mic,
   Users,
+  LayoutDashboard,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: "/", labelKey: "nav.home", icon: House },
+  { to: "/mobile", labelKey: "nav.home", icon: House },
   { to: "/class", labelKey: "nav.class", icon: Users },
   { to: "/assess", labelKey: "nav.assess", icon: Mic, primary: true },
   { to: "/worksheets", labelKey: "nav.sheets", icon: ClipboardList },
@@ -61,7 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       <header className={cn("sticky top-0 z-30 border-b border-border bg-background", printHide && "print:hidden")}>
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3.5 sm:px-6">
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to="/mobile" className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/15 text-primary">
               <BookOpen className="h-5 w-5" strokeWidth={2.2} />
             </span>
@@ -69,8 +70,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Sahayak
             </span>
           </Link>
-          <div className="flex items-center gap-2.5">
-            <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground sm:inline">
+          <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors shadow-2xs"
+            >
+              <LayoutDashboard className="h-3.5 w-3.5" />
+              <span>{language === "hi" ? "वेब पोर्टल" : "Web Portal"}</span>
+            </Link>
+            <span className="hidden rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground sm:inline">
               {t(language, "header.offline")}
             </span>
             <div
@@ -99,7 +107,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             const label = t(language, labelKey);
             const active =
               location.pathname === to ||
-              (to !== "/" && location.pathname.startsWith(to));
+              (to !== "/mobile" && location.pathname.startsWith(to)) ||
+              (to === "/mobile" && (location.pathname === "/mobile" || location.pathname === "/app"));
             if (primary) {
               return (
                 <Link

@@ -897,11 +897,11 @@ export default function CentralPortal() {
             </Button>
 
             <Link
-              to="/"
+              to="/mobile"
               className="inline-flex items-center gap-1.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-xs font-semibold shadow-soft transition-all"
             >
               <Smartphone className="h-3.5 w-3.5" />
-              <span>{language === "hi" ? "मोबाइल ऐप" : "Teacher Mobile App"}</span>
+              <span>{language === "hi" ? "शिक्षक मोबाइल ऐप" : "Teacher Mobile App"}</span>
               <ExternalLink className="h-3 w-3 ml-0.5 opacity-80" />
             </Link>
           </div>
