@@ -18,45 +18,51 @@ export function createServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  const apiRouter = express.Router();
+
   // Health check & Demo
-  app.get("/api/ping", (_req, res) => {
+  apiRouter.get("/ping", (_req, res) => {
     const ping = process.env.PING_MESSAGE ?? "ping";
     res.json({ message: ping });
   });
-  app.get("/api/demo", handleDemo);
-  app.post("/api/demo/seed", handleSeedDemo);
+  apiRouter.get("/demo", handleDemo);
+  apiRouter.post("/demo/seed", handleSeedDemo);
 
   // Class endpoints
-  app.get("/api/classes", handleListClasses);
-  app.get("/api/classes/:id", handleGetClass);
-  app.post("/api/classes", handleUpsertClass);
-  app.put("/api/classes/:id", handleUpsertClass);
-  app.delete("/api/classes/:id", handleDeleteClass);
+  apiRouter.get("/classes", handleListClasses);
+  apiRouter.get("/classes/:id", handleGetClass);
+  apiRouter.post("/classes", handleUpsertClass);
+  apiRouter.put("/classes/:id", handleUpsertClass);
+  apiRouter.delete("/classes/:id", handleDeleteClass);
 
   // Student endpoints
-  app.get("/api/students", handleListStudents);
-  app.get("/api/students/:id", handleGetStudent);
-  app.post("/api/students", handleUpsertStudent);
-  app.put("/api/students/:id", handleUpsertStudent);
-  app.delete("/api/students/:id", handleArchiveStudent);
+  apiRouter.get("/students", handleListStudents);
+  apiRouter.get("/students/:id", handleGetStudent);
+  apiRouter.post("/students", handleUpsertStudent);
+  apiRouter.put("/students/:id", handleUpsertStudent);
+  apiRouter.delete("/students/:id", handleArchiveStudent);
 
   // Assessment endpoints
-  app.get("/api/assessments/:studentId", handleGetStudentAssessments);
-  app.post("/api/assessments", handleUpsertAssessment);
+  apiRouter.get("/assessments/:studentId", handleGetStudentAssessments);
+  apiRouter.post("/assessments", handleUpsertAssessment);
 
   // Learning Gap endpoints
-  app.get("/api/learning-gaps", handleListAllGaps);
-  app.get("/api/learning-gaps/:studentId", handleGetStudentGaps);
-  app.post("/api/learning-gaps", handleUpsertLearningGap);
+  apiRouter.get("/learning-gaps", handleListAllGaps);
+  apiRouter.get("/learning-gaps/:studentId", handleGetStudentGaps);
+  apiRouter.post("/learning-gaps", handleUpsertLearningGap);
 
   // Sync endpoints
-  app.post("/api/sync", handleBatchSync);
-  app.get("/api/sync/logs", handleGetSyncLogs);
-  app.get("/api/supabase/status", handleSupabaseStatus);
+  apiRouter.post("/sync", handleBatchSync);
+  apiRouter.get("/sync/logs", handleGetSyncLogs);
+  apiRouter.get("/supabase/status", handleSupabaseStatus);
 
   // Aggregate reports
-  app.post("/api/reports/gaps", handleAggregatedGaps);
-  app.get("/api/reports/gaps", handleListReports);
+  apiRouter.post("/reports/gaps", handleAggregatedGaps);
+  apiRouter.get("/reports/gaps", handleListReports);
+
+  // Mount under /api as well as / (to handle Vercel rewrites seamlessly)
+  app.use("/api", apiRouter);
+  app.use("/", apiRouter);
 
   return app;
 }

@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import type { AggregatedGapReport, AggregatedGapReportResponse } from "@shared/api";
+import type { AggregatedGapReport, AggregatedGapReportResponse } from "../../shared/api";
 import { randomUUID } from "node:crypto";
 
 const reports: Array<AggregatedGapReport & { id: string; receivedAt: string }> = [];
