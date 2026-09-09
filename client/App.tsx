@@ -64,14 +64,76 @@ const App = () => (
       <AppProvider>
         <BrowserRouter>
           <Routes>
-            {/* Dedicated Central Web Portal Dashboard (Server Data Hub) */}
+            {/* Primary Central Web Portal Dashboard (Default for Web App & Vercel Root) */}
+            <Route path="/" element={<CentralPortal />} />
             <Route path="/portal" element={<CentralPortal />} />
             <Route path="/dashboard" element={<CentralPortal />} />
             <Route path="/analytics" element={<CentralPortal />} />
             <Route path="/admin" element={<CentralPortal />} />
+            <Route path="/reports" element={<CentralPortal />} />
+            <Route path="/roster" element={<CentralPortal />} />
 
             {/* Teacher Mobile App Experience */}
-            <Route path="/*" element={<MobileAppRoutes />} />
+            <Route path="/mobile/*" element={<MobileAppRoutes />} />
+            <Route path="/mobile" element={<MobileAppRoutes />} />
+            <Route path="/app/*" element={<MobileAppRoutes />} />
+            <Route path="/app" element={<MobileAppRoutes />} />
+
+            {/* Direct Mobile Feature URLs */}
+            <Route
+              path="/class/*"
+              element={
+                <AppLayout>
+                  <Routes>
+                    <Route path="/" element={<ClassOverview />} />
+                    <Route path="/grade/:grade" element={<ClassGrade />} />
+                  </Routes>
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/assess"
+              element={
+                <AppLayout>
+                  <Assess />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/worksheets/*"
+              element={
+                <AppLayout>
+                  <Routes>
+                    <Route path="/" element={<Worksheets />} />
+                    <Route path="/:id" element={<WorksheetDetail />} />
+                  </Routes>
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/students/*"
+              element={
+                <AppLayout>
+                  <Routes>
+                    <Route path="/new" element={<StudentForm />} />
+                    <Route path="/:id" element={<StudentDetail />} />
+                    <Route path="/:id/edit" element={<StudentForm />} />
+                  </Routes>
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/sync"
+              element={
+                <AppLayout>
+                  <Sync />
+                </AppLayout>
+              }
+            />
+            <Route path="/setup" element={<Setup />} />
+
+            {/* Fallback */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </AppProvider>
@@ -83,8 +145,13 @@ createRoot(document.getElementById("root")!).render(<App />);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      /* offline shell is optional in some hosts */
-    });
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        reg.update();
+      })
+      .catch(() => {
+        /* offline shell is optional in some hosts */
+      });
   });
 }

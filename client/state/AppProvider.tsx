@@ -100,6 +100,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const save = useCallback(async (next: AppSnapshot) => {
     const stored = await persist(next);
     setSnapshot(stored);
+    try {
+      // Keep portal and mobile in sync in localStorage
+      localStorage.setItem("sahayak_portal_students", JSON.stringify(stored.students));
+      if (stored.classroom) {
+        localStorage.setItem(
+          "sahayak_portal_classes",
+          JSON.stringify([
+            {
+              id: stored.classroom.id,
+              teacherId: "tea_primary",
+              name: stored.classroom.name,
+              gradeBand: "Grade 1-3",
+              studentsPerDay: stored.classroom.studentsPerDay,
+              reassessmentDays: stored.classroom.reassessmentDays,
+              version: 1,
+              createdAt: stored.classroom.createdAt,
+              updatedAt: new Date().toISOString(),
+            },
+          ]),
+        );
+      }
+    } catch {}
   }, []);
 
   const setLanguage = useCallback((lang: Language) => {
@@ -179,7 +201,59 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const [loaded, loadedSession] = await Promise.all([loadSnapshot(), loadSession()]);
         if (cancelled) return;
-        if (loaded?.students) setSnapshot(loaded);
+        if (loaded?.students && loaded.students.length > 0) {
+          // Merge any students added in portal via localStorage
+          try {
+            const portalSaved = localStorage.getItem("sahayak_portal_students");
+            if (portalSaved) {
+              const portalStudents: any[] = JSON.parse(portalSaved);
+              const merged = [...loaded.students];
+              for (const ps of portalStudents) {
+                if (!merged.some((s) => s.id === ps.id)) {
+                  merged.push({
+                    id: ps.id,
+                    classId: ps.classId || loaded.classroom.id,
+                    name: ps.name,
+                    grade: ps.grade || 2,
+                    rollNo: ps.rollNo || "0",
+                    avatarTint: ps.avatarTint || "teal",
+                    createdAt: ps.createdAt || new Date().toISOString(),
+                    lastAssessedAt: ps.lastAssessedAt || null,
+                  });
+                }
+              }
+              loaded.students = merged;
+            }
+          } catch {}
+          setSnapshot(loaded);
+        } else {
+          // Check if portal already has students
+          let initialStudents: Student[] = [];
+          try {
+            const portalSaved = localStorage.getItem("sahayak_portal_students");
+            if (portalSaved) {
+              const portalStudents: any[] = JSON.parse(portalSaved);
+              initialStudents = portalStudents.map((ps) => ({
+                id: ps.id,
+                classId: ps.classId || "cls_101",
+                name: ps.name,
+                grade: ps.grade || 2,
+                rollNo: ps.rollNo || "0",
+                avatarTint: ps.avatarTint || "teal",
+                createdAt: ps.createdAt || new Date().toISOString(),
+                lastAssessedAt: ps.lastAssessedAt || null,
+              }));
+            }
+          } catch {}
+
+          const demo = createDemoSnapshot();
+          if (initialStudents.length > 0) {
+            demo.students = initialStudents;
+          }
+          const stored = await persist(demo);
+          if (!cancelled) setSnapshot(stored);
+        }
+
         if (loadedSession) {
           setSession(loadedSession);
           setPhase("ready");
@@ -579,9 +653,178 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await save({ ...snapshot, syncQueue: [...snapshot.syncQueue, item] });
       },
       flushSync: async () => {
+        let ok = true;
+        let message = t(language, "sync.flushOk");
+
+        // 1. Build and transmit full entity batch to /api/sync (Database & Supabase)
+        try {
+          const operations: any[] = [];
+
+          // Classroom
+          if (snapshot.classroom) {
+            operations.push({
+              id: createId("sync"),
+              entityType: "class",
+              entityId: snapshot.classroom.id,
+              operation: "UPDATE",
+              payload: {
+                id: snapshot.classroom.id,
+                teacherId: "tea_primary",
+                name: snapshot.classroom.name,
+                gradeBand: "Grade 1-3",
+                studentsPerDay: snapshot.classroom.studentsPerDay,
+                reassessmentDays: snapshot.classroom.reassessmentDays,
+                version: 1,
+                createdAt: snapshot.classroom.createdAt,
+                updatedAt: new Date().toISOString(),
+              },
+              clientVersion: 1,
+              clientUpdatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              status: "PENDING",
+              retryCount: 0,
+            });
+          }
+
+          // Students
+          for (const s of snapshot.students) {
+            operations.push({
+              id: createId("sync"),
+              entityType: "student",
+              entityId: s.id,
+              operation: "UPDATE",
+              payload: {
+                id: s.id,
+                classId: s.classId || snapshot.classroom.id,
+                name: s.name,
+                grade: s.grade,
+                rollNo: s.rollNo,
+                avatarTint: s.avatarTint,
+                version: 1,
+                createdAt: s.createdAt,
+                updatedAt: new Date().toISOString(),
+                lastAssessedAt: s.lastAssessedAt,
+              },
+              clientVersion: 1,
+              clientUpdatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              status: "PENDING",
+              retryCount: 0,
+            });
+          }
+
+          // Gaps
+          for (const g of snapshot.gaps) {
+            operations.push({
+              id: createId("sync"),
+              entityType: "learning-gap",
+              entityId: g.id,
+              operation: "UPDATE",
+              payload: {
+                id: g.id,
+                studentId: g.studentId,
+                gapTypeId: g.gapTypeId,
+                subject: g.subject,
+                status: g.status,
+                currentTier: g.currentTier,
+                firstDetectedAt: g.firstDetectedAt,
+                lastDetectedAt: g.lastDetectedAt,
+                resolvedAt: g.resolvedAt,
+                reassessmentDueAt: g.reassessmentDueAt,
+                worksheetIds: g.worksheetIds,
+                assessmentIds: g.assessmentIds,
+                version: 1,
+                createdAt: g.firstDetectedAt,
+                updatedAt: g.lastDetectedAt,
+              },
+              clientVersion: 1,
+              clientUpdatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              status: "PENDING",
+              retryCount: 0,
+            });
+          }
+
+          // Assessments
+          for (const a of snapshot.assessments) {
+            operations.push({
+              id: createId("sync"),
+              entityType: "assessment",
+              entityId: a.id,
+              operation: "CREATE",
+              payload: {
+                id: a.id,
+                studentId: a.studentId,
+                classId: snapshot.classroom.id,
+                subject: a.subject,
+                grade: a.grade,
+                promptId: a.promptId,
+                kind: a.kind,
+                relatedGapId: a.relatedGapId,
+                detectedGapTypeIds: a.detectedGapTypeIds,
+                evidence: a.evidence,
+                analysisSource: a.analysisSource,
+                summary: a.summary,
+                version: 1,
+                timestamp: a.timestamp,
+                createdAt: a.timestamp,
+                updatedAt: a.timestamp,
+              },
+              clientVersion: 1,
+              clientUpdatedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              status: "PENDING",
+              retryCount: 0,
+            });
+          }
+
+          if (operations.length > 0) {
+            await fetch("/api/sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                clientId: "mobile_teacher_device",
+                operations,
+              }),
+            });
+          }
+        } catch (e) {
+          console.warn("Batch sync to /api/sync failed:", e);
+        }
+
+        // 2. Fetch central records from /api/students to merge new web additions
+        let updatedStudents = [...snapshot.students];
+        try {
+          const res = await fetch("/api/students");
+          if (res.ok) {
+            const data = await res.json();
+            const remoteStudents: any[] = data.data || [];
+            if (remoteStudents.length > 0) {
+              for (const rs of remoteStudents) {
+                const idx = updatedStudents.findIndex((s) => s.id === rs.id);
+                if (idx < 0) {
+                  updatedStudents.push({
+                    id: rs.id,
+                    classId: rs.classId || snapshot.classroom.id,
+                    name: rs.name,
+                    grade: rs.grade || 2,
+                    rollNo: rs.rollNo || "0",
+                    avatarTint: rs.avatarTint || "teal",
+                    createdAt: rs.createdAt || new Date().toISOString(),
+                    lastAssessedAt: rs.lastAssessedAt || null,
+                  });
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to pull remote students:", e);
+        }
+
+        // 3. Process any pending queue items (such as aggregated gap reports)
         const pending = snapshot.syncQueue.filter((i) => i.status !== "synced");
         if (!pending.length) {
-          const payload = toAggregatedReport(snapshot.students, snapshot.gaps);
+          const payload = toAggregatedReport(updatedStudents, snapshot.gaps);
           pending.push({
             id: createId("sync"),
             createdAt: new Date().toISOString(),
@@ -592,8 +835,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         let queue = snapshot.syncQueue.some((i) => pending.find((p) => p.id === i.id))
           ? [...snapshot.syncQueue]
           : [...snapshot.syncQueue, ...pending];
-        let ok = true;
-        let message = t(language, "sync.flushOk");
+
         for (const item of pending) {
           try {
             const res = await fetch("/api/reports/gaps", {
@@ -618,7 +860,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             });
           }
         }
-        await save({ ...snapshot, syncQueue: queue });
+
+        await save({ ...snapshot, students: updatedStudents, syncQueue: queue });
         return { ok, message };
       },
       reloadDemo: async () => {

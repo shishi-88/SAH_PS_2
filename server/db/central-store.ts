@@ -53,6 +53,9 @@ class CentralStore {
       updatedAt: new Date().toISOString(),
     };
     this.teachers.set(defaultTeacher.id, defaultTeacher);
+
+    // Seed initial demo data (classes, students, gaps)
+    this.seedDemoData();
   }
 
   // ----------------------------------------------------------------

@@ -8,14 +8,17 @@ import type {
   TeacherEntity,
 } from "../../shared/api";
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+const DEFAULT_SUPABASE_URL = "https://okxnkpkhfhoagyiicppc.supabase.co";
+const DEFAULT_SUPABASE_KEY = "sb_publishable_nI7yFF-bhfva46QjrNoyhA_KNdtuRaJ";
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
 const supabaseKey =
   process.env.SUPABASE_SECRET_KEY ||
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_PUBLISHABLE_KEY ||
   process.env.SUPABASE_ANON_KEY ||
   process.env.VITE_SUPABASE_ANON_KEY ||
-  "";
+  DEFAULT_SUPABASE_KEY;
 
 let supabaseInstance: SupabaseClient | null = null;
 

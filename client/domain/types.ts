@@ -9,7 +9,7 @@ export type MappingSource = "demo" | "verified";
 export type TokenError = "wrong" | "skipped" | "hesitation";
 export type AnalysisSource = "teacher-assisted" | "rule-engine" | "web-speech-assist";
 export type AssessmentKind = "initial" | "reassessment";
-export type AvatarTint = "teal" | "coral" | "yellow" | "lilac";
+export type AvatarTint = "teal" | "coral" | "yellow" | "lilac" | "sand" | "sage";
 
 export interface Classroom {
   id: string;
