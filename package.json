@@ -10,9 +10,15 @@
     "start": "node dist/server/node-build.mjs",
     "test": "vitest --run",
     "format.fix": "prettier --write .",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "eas:build:android": "eas build -p android --profile preview",
+    "eas:build:ios": "eas build -p ios --profile preview",
+    "eas:build:prod": "eas build -p all --profile production",
+    "vercel:deploy": "vercel --prod"
   },
   "dependencies": {
+    "@supabase/server": "^1.6.0",
+    "@supabase/supabase-js": "^2.116.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "zod": "^4.4.3"

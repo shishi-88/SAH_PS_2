@@ -14,8 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        heading: ["Baloo 2", "cursive"],
-        body: ["Nunito Sans", "sans-serif"],
+        heading: ["'Baloo 2'", "cursive", "sans-serif"],
+        body: ["'Nunito Sans'", "sans-serif"],
+        sans: ["'Nunito Sans'", "sans-serif"],
+        mono: ["'Space Mono'", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -83,8 +85,9 @@ export default {
         xl: "calc(var(--radius) + 0.5rem)",
       },
       boxShadow: {
-        soft: "0 2px 10px -2px hsl(25 30% 30% / 0.08), 0 1px 2px -1px hsl(25 30% 30% / 0.06)",
-        card: "0 4px 16px -4px hsl(25 30% 30% / 0.1)",
+        soft: "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)",
+        card: "0 2px 8px -2px rgba(15, 23, 42, 0.08)",
+        warm: "0 1px 4px 0 rgba(0, 0, 0, 0.05)",
       },
       keyframes: {
         "accordion-down": {

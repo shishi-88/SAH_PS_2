@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Sahayak (SAH-PS-2)",
+    "slug": "sahayak-ps-2",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./public/icon.svg",
+    "userInterfaceStyle": "light",
+    "scheme": "sahayak",
+    "splash": {
+      "image": "./public/icon.svg",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8F7F4"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sahayak.app",
+      "infoPlist": {
+        "UIRequiresFullScreen": true
+      }
+    },
+    "android": {
+      "package": "com.sahayak.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./public/icon.svg",
+        "backgroundColor": "#F8F7F4"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "favicon": "./public/favicon.ico",
+      "bundler": "metro"
+    },
+    "plugins": [],
+    "extra": {
+      "eas": {
+        "projectId": "53ee9141-14df-406e-af93-b43277c4d0b7"
+      }
+    }
+  }
+}

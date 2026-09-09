@@ -445,6 +445,10 @@ export function getGapType(id: string): CompetencyGapType | undefined {
   return COMPETENCY_GAP_TYPES.find((g) => g.id === id);
 }
 
+export function getAllGapTypes(): CompetencyGapType[] {
+  return COMPETENCY_GAP_TYPES;
+}
+
 export function gapTypesFor(subject: Subject, grade: Grade): CompetencyGapType[] {
   return COMPETENCY_GAP_TYPES.filter(
     (g) => g.subject === subject && g.grades.includes(grade),
