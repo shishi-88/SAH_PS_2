@@ -8,6 +8,7 @@ import {
   BookOpen,
   Calculator,
   Clock,
+  Dices,
   GitCompare,
   Hash,
   Layers,
@@ -34,6 +35,7 @@ import { categoriesFor, getCategory } from "@/domain/assessment-categories";
 import { gapTypesFor, getGapType } from "@/domain/competency-registry";
 import { diagnose, matchTranscriptToObservations } from "@/domain/diagnosis";
 import { promptsFor } from "@/domain/prompts";
+import { buildAssessSessionOrder } from "@/domain/assessment-session";
 import type {
   AnalysisSource,
   AssessmentPrompt,
@@ -119,12 +121,23 @@ export default function Assess() {
     [snapshot.students, studentId],
   );
 
-  const studentList = useMemo(() => {
-    const list = [...snapshot.students].sort((a, b) =>
-      a.rollNo.localeCompare(b.rollNo, undefined, { numeric: true }),
-    );
-    return presetGrade ? list.filter((s) => s.grade === presetGrade) : list;
-  }, [snapshot.students, presetGrade]);
+  /* One randomized session order per visit: classes stay grouped
+     (Class 1 → 2 → 3) and students are shuffled once inside each class.
+     The state initializer runs only when this assessment session starts,
+     so rerenders and navigation never reshuffle the list. */
+  const [sessionOrder, setSessionOrder] = useState(() =>
+    buildAssessSessionOrder(snapshot.students),
+  );
+
+  const studentGroups = useMemo(() => {
+    if (!presetGrade) return sessionOrder.groups;
+    return sessionOrder.groups.filter((g) => g.grade === presetGrade);
+  }, [sessionOrder.groups, presetGrade]);
+
+  const studentList = useMemo(
+    () => studentGroups.flatMap((g) => g.students),
+    [studentGroups],
+  );
 
   /* Auto-advance when a category has exactly one prompt. */
   useEffect(() => {
@@ -295,7 +308,23 @@ export default function Assess() {
       </div>
 
       {step === "student" && (
-        <div className="space-y-2.5">
+        <div className="space-y-5">
+          {studentList.length > 0 && (
+            <div className="flex items-center justify-between gap-2 px-1">
+              <p className="text-xs text-muted-foreground">
+                {t(language, "assess.classRandomized")}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 rounded-full text-xs"
+                onClick={() => setSessionOrder(buildAssessSessionOrder(snapshot.students))}
+              >
+                <Dices className="h-4 w-4" />
+                {t(language, "assess.newOrder")}
+              </Button>
+            </div>
+          )}
           {studentList.length === 0 && (
             <p className="text-sm text-muted-foreground">
               {presetGrade
@@ -306,25 +335,40 @@ export default function Assess() {
               </Link>
             </p>
           )}
-          {studentList.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => {
-                setStudentId(s.id);
-                setPrompt(null);
-                setCategory(null);
-                setStep("skill");
-              }}
-              className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3.5 text-left shadow-soft"
-            >
-              <StudentAvatar name={s.name} tint={s.avatarTint} />
-              <div>
-                <p className="font-heading font-bold">{s.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  Grade {s.grade} · Roll {s.rollNo}
-                </p>
+          {studentGroups.map((group) => (
+            <section key={group.grade} className="space-y-2.5">
+              <div className="flex items-center gap-2 px-1 pt-1">
+                <h2 className="font-heading text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                  {t(language, "class.grade", { grade: group.grade })}
+                </h2>
+                <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  {t(language, "assess.classStudents", {
+                    n: group.students.length,
+                    s: group.students.length === 1 ? "" : "s",
+                  })}
+                </span>
               </div>
-            </button>
+              {group.students.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    setStudentId(s.id);
+                    setPrompt(null);
+                    setCategory(null);
+                    setStep("skill");
+                  }}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3.5 text-left shadow-soft"
+                >
+                  <StudentAvatar name={s.name} tint={s.avatarTint} />
+                  <div>
+                    <p className="font-heading font-bold">{s.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Grade {s.grade} · Roll {s.rollNo}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </section>
           ))}
         </div>
       )}

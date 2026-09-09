@@ -7,7 +7,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { loadSnapshot, saveSnapshot } from "@/data/storage";
+import { loadSnapshot, saveSnapshot, loadSession, saveSession, clearSession } from "@/data/storage";
+import { getOrCreateDeviceId } from "@/data/device";
 import { createDemoSnapshot, emptyClassroom } from "@/data/seed";
 import { getGapType } from "@/domain/competency-registry";
 import {
@@ -29,11 +30,23 @@ import type {
   WorksheetInstance,
   WorksheetTier,
 } from "@/domain/types";
-import type { AggregatedGapReportResponse } from "@shared/api";
+import type { AggregatedGapReportResponse, TeacherSession } from "@shared/api";
+
+export type AppPhase = "loading" | "setup" | "ready";
+
+export interface TeacherSetupInput {
+  teacherName: string;
+  schoolName?: string;
+  classroomName: string;
+}
 
 interface AppContextValue {
   ready: boolean;
   error: string | null;
+  phase: AppPhase;
+  session: TeacherSession | null;
+  completeSetup: (input: TeacherSetupInput) => Promise<void>;
+  switchTeacher: () => Promise<void>;
   language: Language;
   setLanguage: (lang: Language) => void;
   snapshot: AppSnapshot;
@@ -81,6 +94,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     syncQueue: [],
     storageNote: "",
   }));
+  const [session, setSession] = useState<TeacherSession | null>(null);
+  const [phase, setPhase] = useState<AppPhase>("loading");
 
   const save = useCallback(async (next: AppSnapshot) => {
     const stored = await persist(next);
@@ -100,18 +115,77 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = language;
   }, [language]);
 
+  /* Background restore: refresh the persisted context from the server when
+     reachable; stay fully usable offline otherwise. Only a server that
+     explicitly rejects a previously-online session ends the session. */
+  const tryRestore = useCallback(async (prev: TeacherSession) => {
+    let res: Response;
+    try {
+      res = await fetch("/api/auth/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionToken: prev.sessionToken }),
+      });
+    } catch {
+      return; // offline — keep the local session untouched
+    }
+    if (res.status === 401) {
+      if (prev.establishedOnline) {
+        await clearSession();
+        setSession(null);
+        setPhase("setup");
+      }
+      return;
+    }
+    if (!res.ok) return;
+    const d = (await res.json()) as {
+      data?: {
+        sessionToken: string;
+        deviceId: string;
+        teacher: { id: string; name: string; schoolName?: string };
+        classroom: { id: string; name: string };
+      };
+    };
+    const data = d.data;
+    if (!data) return;
+    const next: TeacherSession = {
+      sessionToken: data.sessionToken,
+      deviceId: data.deviceId,
+      teacherId: data.teacher.id,
+      classroomId: data.classroom.id,
+      teacherName: data.teacher.name,
+      schoolName: data.teacher.schoolName,
+      classroomName: data.classroom.name,
+      establishedAt: prev.establishedAt,
+      establishedOnline: true,
+    };
+    setSession(next);
+    await saveSession(next);
+    setSnapshot((prevSnap) => ({
+      ...prevSnap,
+      classroom: {
+        ...prevSnap.classroom,
+        id: data.classroom.id,
+        name: data.classroom.name,
+        teacherLabel: data.teacher.name,
+        schoolName: data.teacher.schoolName,
+      },
+    }));
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const loaded = await loadSnapshot();
+        const [loaded, loadedSession] = await Promise.all([loadSnapshot(), loadSession()]);
         if (cancelled) return;
-        if (loaded?.students) {
-          setSnapshot(loaded);
+        if (loaded?.students) setSnapshot(loaded);
+        if (loadedSession) {
+          setSession(loadedSession);
+          setPhase("ready");
+          tryRestore(loadedSession).catch(() => {});
         } else {
-          const demo = createDemoSnapshot();
-          const stored = await persist(demo);
-          if (!cancelled) setSnapshot(stored);
+          setPhase("setup");
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Could not open local records.");
@@ -122,12 +196,102 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tryRestore]);
+
+  const completeSetup = useCallback(
+    async (input: TeacherSetupInput) => {
+      const deviceId = getOrCreateDeviceId();
+      let next: TeacherSession;
+      try {
+        const res = await fetch("/api/auth/setup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deviceId,
+            teacherName: input.teacherName,
+            schoolName: input.schoolName,
+            classroomName: input.classroomName,
+          }),
+        });
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        const d = (await res.json()) as {
+          data: {
+            sessionToken: string;
+            deviceId: string;
+            teacher: { id: string; name: string; schoolName?: string };
+            classroom: { id: string; name: string };
+          };
+        };
+        const data = d.data;
+        next = {
+          sessionToken: data.sessionToken,
+          deviceId: data.deviceId,
+          teacherId: data.teacher.id,
+          classroomId: data.classroom.id,
+          teacherName: data.teacher.name,
+          schoolName: data.teacher.schoolName,
+          classroomName: data.classroom.name,
+          establishedAt: new Date().toISOString(),
+          establishedOnline: true,
+        };
+      } catch {
+        /* Offline first-run: keep the classroom usable locally. The context
+           binds to real server IDs the next time the device is online. */
+        const now = new Date().toISOString();
+        next = {
+          sessionToken: `local_${createId("tok")}`,
+          deviceId,
+          teacherId: `tea_${createId("local")}`,
+          classroomId: `cls_${createId("local")}`,
+          teacherName: input.teacherName.trim(),
+          schoolName: input.schoolName?.trim() || undefined,
+          classroomName: input.classroomName.trim(),
+          establishedAt: now,
+          establishedOnline: false,
+        };
+      }
+      await saveSession(next);
+      setSession(next);
+      const nextClassroom: Classroom = {
+        ...snapshot.classroom,
+        id: next.classroomId,
+        name: next.classroomName,
+        teacherLabel: next.teacherName,
+        schoolName: next.schoolName,
+      };
+      const students = snapshot.students.map((s) => ({ ...s, classId: next.classroomId }));
+      await save({ ...snapshot, classroom: nextClassroom, students });
+      setPhase("ready");
+    },
+    [snapshot, save],
+  );
+
+  const switchTeacher = useCallback(async () => {
+    const prev = session;
+    setSession(null);
+    setPhase("setup");
+    await clearSession();
+    if (prev?.establishedOnline) {
+      try {
+        await fetch("/api/auth/end", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionToken: prev.sessionToken }),
+        });
+      } catch {
+        /* offline — the local session is already cleared */
+      }
+    }
+  }, [session]);
 
   const value = useMemo<AppContextValue>(() => {
     return {
       ready,
       error,
+      phase,
+      session,
+      completeSetup,
+      switchTeacher,
       language,
       setLanguage,
       snapshot,
@@ -459,10 +623,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
       reloadDemo: async () => {
         const demo = createDemoSnapshot();
-        await save(demo);
+        if (session?.classroomId) {
+          /* Keep the demo bound to the current teacher/classroom context. */
+          const classroom = {
+            ...demo.classroom,
+            id: session.classroomId,
+            name: session.classroomName,
+            teacherLabel: session.teacherName,
+            schoolName: session.schoolName,
+          };
+          const students = demo.students.map((s) => ({ ...s, classId: session.classroomId }));
+          await save({ ...demo, classroom, students });
+        } else {
+          await save(demo);
+        }
       },
     };
-  }, [ready, error, language, setLanguage, snapshot, save]);
+  }, [
+    ready,
+    error,
+    phase,
+    session,
+    completeSetup,
+    switchTeacher,
+    language,
+    setLanguage,
+    snapshot,
+    save,
+  ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

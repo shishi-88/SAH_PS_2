@@ -1,4 +1,5 @@
 import type { AppSnapshot } from "@/domain/types";
+import type { TeacherSession } from "@shared/api";
 
 const DB_NAME = "sahayak-path";
 const DB_VERSION = 1;
@@ -119,4 +120,57 @@ export async function saveSnapshot(snapshot: AppSnapshot): Promise<string> {
 
 export async function clearSnapshot(): Promise<void> {
   await idbSet(VAULT, "snapshot", undefined);
+}
+
+// -------------------------------------------------------------------
+// Teacher session persistence (same encrypted vault, separate record).
+// The session token is an opaque bearer token, never a password; it is
+// kept in the AES-GCM-wrapped vault rather than plain localStorage.
+// -------------------------------------------------------------------
+
+export async function saveSession(session: TeacherSession): Promise<void> {
+  const key = await getOrCreateDeviceKey();
+  const json = JSON.stringify(session);
+  if (!key) {
+    await idbSet(VAULT, "session", { mode: "plain", data: json });
+    return;
+  }
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const cipher = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    new TextEncoder().encode(json),
+  );
+  await idbSet(VAULT, "session", {
+    mode: "encrypted",
+    iv: bufToB64(iv.buffer),
+    data: bufToB64(cipher),
+  });
+}
+
+export async function loadSession(): Promise<TeacherSession | null> {
+  const row = await idbGet<{ mode: "encrypted" | "plain"; iv?: string; data: string }>(
+    VAULT,
+    "session",
+  );
+  if (!row) return null;
+  if (row.mode === "plain") {
+    return JSON.parse(row.data) as TeacherSession;
+  }
+  const key = await getOrCreateDeviceKey();
+  if (!key || !row.iv) return null;
+  try {
+    const plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: new Uint8Array(b64ToBuf(row.iv)) },
+      key,
+      b64ToBuf(row.data),
+    );
+    return JSON.parse(new TextDecoder().decode(plain)) as TeacherSession;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearSession(): Promise<void> {
+  await idbSet(VAULT, "session", undefined);
 }

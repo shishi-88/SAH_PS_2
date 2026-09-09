@@ -39,8 +39,70 @@ export interface TeacherEntity {
   email?: string;
   phone?: string;
   schoolId?: string;
+  /** Human-readable school name captured during teacher setup. */
+  schoolName?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// -------------------------------------------------------------
+// Teacher Session / Device Binding (Auth)
+// -------------------------------------------------------------
+
+/** Stable identity of one classroom device, bound to a teacher + classroom. */
+export interface DeviceBinding {
+  deviceId: string;
+  teacherId: string;
+  classroomId: string;
+  createdAt: string;
+}
+
+export type SessionScope = "teacher" | "admin";
+
+/** Server-side session record keyed by an opaque bearer token. */
+export interface TeacherSessionRecord {
+  token: string;
+  deviceId: string;
+  teacherId: string;
+  classroomId: string;
+  scope: SessionScope;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** What the client stores so it can resume without logging in again. */
+export interface TeacherSession {
+  sessionToken: string;
+  deviceId: string;
+  teacherId: string;
+  classroomId: string;
+  teacherName: string;
+  schoolName?: string;
+  classroomName: string;
+  establishedAt: string;
+  /** True when the session was issued by the server (vs. offline fallback). */
+  establishedOnline?: boolean;
+}
+
+export interface TeacherSetupRequest {
+  deviceId: string;
+  teacherName: string;
+  schoolName?: string;
+  classroomName: string;
+}
+
+export interface TeacherSetupResponse {
+  sessionToken: string;
+  deviceId: string;
+  teacher: TeacherEntity;
+  classroom: ClassEntity;
+}
+
+export interface RestoreSessionResponse {
+  sessionToken: string;
+  deviceId: string;
+  teacher: TeacherEntity;
+  classroom: ClassEntity;
 }
 
 export interface ClassEntity {

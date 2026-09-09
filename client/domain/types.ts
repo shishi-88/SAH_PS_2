@@ -15,6 +15,8 @@ export interface Classroom {
   id: string;
   name: string;
   teacherLabel: string;
+  /** School name captured during teacher setup (stable context). */
+  schoolName?: string;
   reassessmentDays: 7 | 14;
   studentsPerDay: number;
   rotationStartedAt: string;

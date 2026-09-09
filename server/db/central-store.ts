@@ -1,3 +1,4 @@
+import { randomBytes, randomUUID } from "node:crypto";
 import type {
   ClassEntity,
   StudentEntity,
@@ -7,6 +8,10 @@ import type {
   SyncOperationResult,
   SyncLogEntry,
   TeacherEntity,
+  TeacherSessionRecord,
+  DeviceBinding,
+  SessionScope,
+  TeacherSetupRequest,
 } from "../../shared/api";
 import {
   syncClassToSupabase,
@@ -16,6 +21,14 @@ import {
   syncLogToSupabase,
 } from "../supabase/supabase-client";
 
+const SESSION_TTL_MS = 180 * 24 * 60 * 60 * 1000; // ~6 months on a trusted classroom device
+
+export interface SessionContext {
+  session: TeacherSessionRecord;
+  teacher: TeacherEntity;
+  classroom: ClassEntity;
+}
+
 class CentralStore {
   public teachers = new Map<string, TeacherEntity>();
   public classes = new Map<string, ClassEntity>();
@@ -23,6 +36,10 @@ class CentralStore {
   public assessments = new Map<string, AssessmentEntity>();
   public learningGaps = new Map<string, LearningGapEntity>();
   public syncLogs: SyncLogEntry[] = [];
+  /** Stable device → teacher/classroom binding (one per classroom device). */
+  public devices = new Map<string, DeviceBinding>();
+  /** Opaque bearer tokens → session records. */
+  public sessions = new Map<string, TeacherSessionRecord>();
 
   constructor() {
     // Seed default teacher
@@ -31,10 +48,179 @@ class CentralStore {
       name: "Prerna Sharma",
       email: "prerna.sharma@primaryschool.edu.in",
       schoolId: "GPS-104",
+      schoolName: "Primary School, GPS-104",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     this.teachers.set(defaultTeacher.id, defaultTeacher);
+  }
+
+  // ----------------------------------------------------------------
+  // Teacher session / device management
+  // ----------------------------------------------------------------
+
+  private issueSession(
+    deviceId: string,
+    teacherId: string,
+    classroomId: string,
+    scope: SessionScope = "teacher",
+  ): TeacherSessionRecord {
+    const now = new Date();
+    const token = randomBytes(32).toString("hex");
+    const session: TeacherSessionRecord = {
+      token,
+      deviceId,
+      teacherId,
+      classroomId,
+      scope,
+      createdAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + SESSION_TTL_MS).toISOString(),
+    };
+    this.sessions.set(token, session);
+    return session;
+  }
+
+  /**
+   * First-time (or repeated) teacher setup on a trusted classroom device.
+   * Stable IDs: re-running setup on the same device reuses the same
+   * teacher + classroom rather than creating duplicates.
+   */
+  public setupTeacher(input: TeacherSetupRequest): SessionContext {
+    const now = new Date().toISOString();
+    const existing = this.devices.get(input.deviceId);
+    let teacher: TeacherEntity;
+    let classroom: ClassEntity;
+
+    if (existing) {
+      teacher =
+        this.teachers.get(existing.teacherId) ??
+        this.makeTeacher(input, now);
+      teacher = {
+        ...teacher,
+        name: input.teacherName.trim(),
+        schoolName: input.schoolName?.trim() || teacher.schoolName,
+        updatedAt: now,
+      };
+      this.teachers.set(teacher.id, teacher);
+
+      classroom = this.classes.get(existing.classroomId) ?? this.makeClass(input, teacher.id, now);
+      classroom = {
+        ...classroom,
+        name: input.classroomName.trim(),
+        teacherId: teacher.id,
+        updatedAt: now,
+      };
+      this.classes.set(classroom.id, classroom);
+    } else {
+      teacher = this.makeTeacher(input, now);
+      this.teachers.set(teacher.id, teacher);
+      classroom = this.makeClass(input, teacher.id, now);
+      this.classes.set(classroom.id, classroom);
+      this.devices.set(input.deviceId, {
+        deviceId: input.deviceId,
+        teacherId: teacher.id,
+        classroomId: classroom.id,
+        createdAt: now,
+      });
+    }
+
+    const session = this.issueSession(input.deviceId, teacher.id, classroom.id, "teacher");
+    syncClassToSupabase(classroom).catch((e) => console.warn("[Supabase Sync Class]", e));
+    return { session, teacher, classroom };
+  }
+
+  private makeTeacher(input: TeacherSetupRequest, now: string): TeacherEntity {
+    return {
+      id: `tea_${randomUUID()}`,
+      name: input.teacherName.trim(),
+      schoolName: input.schoolName?.trim() || undefined,
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  private makeClass(input: TeacherSetupRequest, teacherId: string, now: string): ClassEntity {
+    return {
+      id: `cls_${randomUUID()}`,
+      teacherId,
+      name: input.classroomName.trim() || "Class 1–3 Primary Section",
+      gradeBand: "Classes 1-3",
+      studentsPerDay: 5,
+      reassessmentDays: 14,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  public getSession(token: string): TeacherSessionRecord | undefined {
+    const session = this.sessions.get(token);
+    if (!session) return undefined;
+    if (new Date(session.expiresAt).getTime() <= Date.now()) {
+      this.sessions.delete(token);
+      return undefined;
+    }
+    return session;
+  }
+
+  public getSessionContext(token: string): SessionContext | undefined {
+    const session = this.getSession(token);
+    if (!session) return undefined;
+    const teacher = this.teachers.get(session.teacherId);
+    const classroom = this.classes.get(session.classroomId);
+    if (!teacher || !classroom) return undefined;
+    return { session, teacher, classroom };
+  }
+
+  public endSession(token: string): boolean {
+    return this.sessions.delete(token);
+  }
+
+  /** Admin (portal) session bound to the seeded school-level teacher. */
+  public getAdminSession(): SessionContext {
+    const adminTeacher = this.teachers.get("tea_demo")!;
+    const demoClass = Array.from(this.classes.values()).find(
+      (c) => c.teacherId === "tea_demo",
+    );
+    const classroom =
+      demoClass ??
+      this.makeClass(
+        { deviceId: "portal", teacherName: adminTeacher.name, classroomName: "Class 1–3 Primary Section" },
+        "tea_demo",
+        new Date().toISOString(),
+      );
+    if (!demoClass) this.classes.set(classroom.id, classroom);
+    const session = this.issueSession("portal-device", "tea_demo", classroom.id, "admin");
+    return { session, teacher: adminTeacher, classroom };
+  }
+
+  // ----------------------------------------------------------------
+  // Ownership checks (enforced by route middleware — never client-only)
+  // ----------------------------------------------------------------
+
+  /** Admin scope sees everything; teachers only their own classes. */
+  public canAccessClass(session: TeacherSessionRecord, classId: string): boolean {
+    if (session.scope === "admin") return true;
+    const cls = this.classes.get(classId);
+    return Boolean(cls && cls.teacherId === session.teacherId);
+  }
+
+  /** Access to a student implies access to the class it belongs to. */
+  public canAccessStudent(session: TeacherSessionRecord, studentId: string): boolean {
+    if (session.scope === "admin") return true;
+    const student = this.students.get(studentId);
+    if (!student) return false;
+    return this.canAccessClass(session, student.classId);
+  }
+
+  /** Class ids the session may touch (admin → all classes). */
+  public classIdsForSession(session: TeacherSessionRecord): Set<string> | null {
+    if (session.scope === "admin") return null; // null = unrestricted
+    return new Set(
+      Array.from(this.classes.values())
+        .filter((c) => c.teacherId === session.teacherId)
+        .map((c) => c.id),
+    );
   }
 
   // --- Classes ---

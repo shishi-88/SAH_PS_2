@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   CloudUpload,
   History,
+  LogOut,
   RefreshCw,
   RotateCcw,
   Settings2,
@@ -12,6 +13,17 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useApp } from "@/state/AppProvider";
 import { toAggregatedReport } from "@/domain/class-overview";
 import { formatShortDate } from "@/domain/ids";
@@ -21,9 +33,10 @@ import { STORAGE_NOTE_ENCRYPTED } from "@/data/storage";
 import type { SyncQueueItem } from "@/domain/types";
 
 export default function Sync() {
-  const { snapshot, ready, flushSync, updateClassroom, reloadDemo, language } = useApp();
+  const { snapshot, ready, flushSync, updateClassroom, reloadDemo, session, switchTeacher, language } = useApp();
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [switching, setSwitching] = useState(false);
 
   if (!ready) return null;
   const preview = toAggregatedReport(snapshot.students, snapshot.gaps);
@@ -223,6 +236,48 @@ export default function Sync() {
         <Link to="/class" className="block text-sm font-semibold text-primary">
           {t(language, "sync.openClassWall")}
         </Link>
+      </section>
+
+      <section className="space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-status-priority/15 text-status-priority-foreground">
+            <LogOut className="h-5 w-5" strokeWidth={2.1} />
+          </span>
+          <div>
+            <h2 className="font-heading text-base font-bold">{t(language, "sync.switchTitle")}</h2>
+            <p className="text-xs text-muted-foreground">
+              {session
+                ? `${session.teacherName}${session.schoolName ? ` · ${session.schoolName}` : ""} · ${session.classroomName}`
+                : t(language, "sync.switchIntro")}
+            </p>
+          </div>
+        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" className="w-full rounded-full">
+              {t(language, "sync.switchAction")}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="max-w-sm rounded-3xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t(language, "sync.switchConfirmTitle")}</AlertDialogTitle>
+              <AlertDialogDescription>{t(language, "sync.switchConfirmBody")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t(language, "sync.switchCancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={switching}
+                onClick={async () => {
+                  setSwitching(true);
+                  await switchTeacher();
+                  setSwitching(false);
+                }}
+              >
+                {t(language, "sync.switchConfirmAction")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </section>
 
       <section className="rounded-3xl border border-dashed border-border bg-card p-5 shadow-soft">

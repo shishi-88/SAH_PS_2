@@ -24,6 +24,38 @@ const STRINGS = {
   },
   "header.language": { en: "Language", hi: "भाषा" },
 
+  /* Teacher setup */
+  "setup.loading": { en: "Opening…", hi: "खुल रहा है…" },
+  "setup.title": { en: "Set up your classroom", hi: "अपनी कक्षा सेट करें" },
+  "setup.subtitle": { en: "One-time setup for this device", hi: "इस डिवाइस के लिए एक बार की सेटअप" },
+  "setup.teacherName": { en: "Teacher name", hi: "शिक्षक का नाम" },
+  "setup.teacherPlaceholder": { en: "e.g. Prerna Sharma", hi: "जैसे प्रेरणा शर्मा" },
+  "setup.schoolName": { en: "School name (optional)", hi: "स्कूल का नाम (वैकल्पिक)" },
+  "setup.schoolPlaceholder": { en: "e.g. GPS-104 Primary School", hi: "जैसे जीपीएस-104 प्राइमरी स्कूल" },
+  "setup.classroomName": { en: "Classroom name", hi: "कक्षा का नाम" },
+  "setup.classroomPlaceholder": {
+    en: "e.g. Class 1–3 Morning Section",
+    hi: "जैसे कक्षा 1–3 सुबह का सेक्शन",
+  },
+  "setup.continue": { en: "Open my classroom", hi: "मेरी कक्षा खोलें" },
+  "setup.saving": { en: "Setting up…", hi: "सेट हो रहा है…" },
+  "setup.once": {
+    en: "This device remembers you — no daily login.",
+    hi: "यह डिवाइस आपको याद रखता है — रोज़ लॉगिन की ज़रूरत नहीं।",
+  },
+  "setup.returns": {
+    en: "Coming back later opens straight to your dashboard.",
+    hi: "बाद में लौटने पर सीधे आपका डैशबोर्ड खुलेगा।",
+  },
+  "setup.offline": {
+    en: "Works offline after setup. First-time setup needs the reporting server once.",
+    hi: "सेटअप के बाद ऑफ़लाइन चलता है। पहली बार सेटअप के लिए एक बार रिपोर्टिंग सर्वर चाहिए।",
+  },
+  "setup.offlineFallback": {
+    en: "Server not reachable — classroom saved on this device and will bind to your account when online.",
+    hi: "सर्वर उपलब्ध नहीं — कक्षा इस डिवाइस पर सहेजी गई है, ऑनलाइन होने पर आपके खाते से जुड़ जाएगी।",
+  },
+
   /* Home */
   "home.opening": { en: "Opening class records…", hi: "कक्षा का रिकॉर्ड खुल रहा है…" },
   "home.assessCta": { en: "Assess a student", hi: "विद्यार्थी का आकलन करें" },
@@ -275,6 +307,19 @@ const STRINGS = {
     en: "This replaces everything on this phone with the demo class.",
     hi: "यह इस फ़ोन का सारा डेटा डेमो कक्षा से बदल देगा।",
   },
+  "sync.switchTitle": { en: "Switch teacher / classroom", hi: "शिक्षक / कक्षा बदलें" },
+  "sync.switchIntro": {
+    en: "End this session on this device. The next teacher can set up their own classroom — records stay on the phone.",
+    hi: "इस डिवाइस पर यह सत्र समाप्त करें। अगला शिक्षक अपनी कक्षा सेट कर सकता है — रिकॉर्ड फ़ोन पर रहेंगे।",
+  },
+  "sync.switchAction": { en: "Switch teacher / classroom", hi: "शिक्षक / कक्षा बदलें" },
+  "sync.switchConfirmTitle": { en: "Switch teacher?", hi: "शिक्षक बदलें?" },
+  "sync.switchConfirmBody": {
+    en: "This ends the current session on this device and returns to setup. Local records stay on the phone.",
+    hi: "यह इस डिवाइस पर वर्तमान सत्र समाप्त कर सेटअप पर लौटाएगा। स्थानीय रिकॉर्ड फ़ोन पर रहेंगे।",
+  },
+  "sync.switchConfirmAction": { en: "Switch", hi: "बदलें" },
+  "sync.switchCancel": { en: "Cancel", hi: "रद्द करें" },
 
   /* Class wall */
   "wall.title": { en: "Class wall", hi: "कक्षा दीवार" },
@@ -322,6 +367,12 @@ const STRINGS = {
     en: "No students in Class {grade} yet.",
     hi: "कक्षा {grade} में अभी कोई विद्यार्थी नहीं।",
   },
+  "assess.classStudents": { en: "{n} student{s}", hi: "{n} विद्यार्थी" },
+  "assess.classRandomized": {
+    en: "Random order for this session — classes are kept together.",
+    hi: "इस सत्र के लिए यादृच्छिक क्रम — कक्षाएँ एक साथ रखी गई हैं।",
+  },
+  "assess.newOrder": { en: "New order", hi: "नया क्रम" },
 
   /* Worksheet preview: activity kinds */
   "wp.read": { en: "Read", hi: "पढ़ो" },

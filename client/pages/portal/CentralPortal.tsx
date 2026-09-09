@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Server,
@@ -127,6 +127,39 @@ const CHART_COLORS = {
 
 export default function CentralPortal() {
   const { language, setLanguage, reloadDemo, snapshot } = useApp();
+  const portalTokenRef = useRef<string | null>(null);
+  const tokenPromiseRef = useRef<Promise<string | null> | null>(null);
+
+  // School-level admin session for the central portal. Kept in memory only;
+  // teacher-scoped endpoints reject requests without a valid session.
+  const ensurePortalToken = (): Promise<string | null> => {
+    if (portalTokenRef.current) return Promise.resolve(portalTokenRef.current);
+    if (!tokenPromiseRef.current) {
+      tokenPromiseRef.current = (async () => {
+        try {
+          const res = await fetch("/api/auth/admin/session", { method: "POST" });
+          if (!res.ok) return null;
+          const d = await res.json();
+          portalTokenRef.current = d.data?.sessionToken ?? null;
+          return portalTokenRef.current;
+        } catch {
+          return null;
+        }
+      })();
+    }
+    return tokenPromiseRef.current;
+  };
+
+  const portalFetch = async (path: string, init: RequestInit = {}): Promise<Response> => {
+    const token = await ensurePortalToken();
+    const headers = new Headers(init.headers);
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    if (init.body && !headers.get("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    return fetch(path, { ...init, headers });
+  };
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -217,11 +250,11 @@ export default function CentralPortal() {
     try {
       setRefreshing(true);
       const [classRes, studentRes, gapRes, logRes, sbRes] = await Promise.all([
-        fetch("/api/classes"),
-        fetch("/api/students"),
-        fetch("/api/learning-gaps"),
-        fetch("/api/sync/logs"),
-        fetch("/api/supabase/status"),
+        portalFetch("/api/classes"),
+        portalFetch("/api/students"),
+        portalFetch("/api/learning-gaps"),
+        portalFetch("/api/sync/logs"),
+        portalFetch("/api/supabase/status"),
       ]);
 
       if (classRes.ok) {
@@ -255,7 +288,7 @@ export default function CentralPortal() {
   const handleSeedDemoData = async () => {
     try {
       setSeeding(true);
-      const res = await fetch("/api/demo/seed", { method: "POST" });
+      const res = await portalFetch("/api/demo/seed", { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         showNotification(
@@ -484,9 +517,8 @@ export default function CentralPortal() {
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await fetch("/api/students", {
+      const res = await portalFetch("/api/students", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -518,7 +550,7 @@ export default function CentralPortal() {
     }
 
     try {
-      const res = await fetch(`/api/students/${studentId}`, { method: "DELETE" });
+      const res = await portalFetch(`/api/students/${studentId}`, { method: "DELETE" });
       if (res.ok) {
         setStudents((prev) => prev.filter((s) => s.id !== studentId));
         setLearningGaps((prev) => prev.filter((g) => g.studentId !== studentId));
@@ -567,9 +599,8 @@ export default function CentralPortal() {
         updatedAt: now,
       };
 
-      const res = await fetch("/api/learning-gaps", {
+      const res = await portalFetch("/api/learning-gaps", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -610,9 +641,8 @@ export default function CentralPortal() {
         updatedAt: now,
       };
 
-      const res = await fetch("/api/learning-gaps", {
+      const res = await portalFetch("/api/learning-gaps", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -646,9 +676,8 @@ export default function CentralPortal() {
         updatedAt: now,
       };
 
-      const res = await fetch("/api/learning-gaps", {
+      const res = await portalFetch("/api/learning-gaps", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 

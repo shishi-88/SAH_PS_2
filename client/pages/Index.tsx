@@ -55,7 +55,10 @@ export default function Index() {
   return (
     <div className="space-y-7">
       <section className="space-y-1">
-        <p className="text-sm font-medium text-muted-foreground">{classroom.teacherLabel}</p>
+        <p className="text-sm font-medium text-muted-foreground">
+          {classroom.schoolName ? `${classroom.schoolName} · ` : ""}
+          {classroom.teacherLabel}
+        </p>
         <h1 className="font-heading text-[28px] font-bold leading-tight text-foreground sm:text-3xl">
           {classroom.name}
         </h1>
