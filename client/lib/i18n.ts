@@ -57,6 +57,29 @@ const STRINGS = {
   "home.gradeRoll": { en: "Grade {grade} · Roll {roll}", hi: "कक्षा {grade} · रोल {roll}" },
   "home.notAssessed": { en: "Not yet assessed", hi: "अभी आकलन नहीं हुआ" },
   "home.assess": { en: "Assess", hi: "आकलन" },
+  "home.today": { en: "Today", hi: "आज" },
+  "home.todayClear": {
+    en: "All caught up — nothing due today.",
+    hi: "सब तैयार — आज कुछ बाकी नहीं।",
+  },
+  "home.actionsAssess": {
+    en: "Assess {n} student{s}",
+    hi: "{n} विद्यार्थियों का आकलन करें",
+  },
+  "home.actionsReassess": {
+    en: "Reassess {n} student{s}",
+    hi: "{n} विद्यार्थियों का दोबारा आकलन करें",
+  },
+  "home.actionsPractice": {
+    en: "Give practice to {n} student{s}",
+    hi: "{n} विद्यार्थियों को अभ्यास दें",
+  },
+  "home.actionsGroup": {
+    en: "Run a small-group activity",
+    hi: "छोटे समूह की गतिविधि चलाएँ",
+  },
+  "home.nextUp": { en: "Next up in rotation", hi: "चक्र में अगले" },
+  "home.groupStudents": { en: "{n} students · {label}", hi: "{n} विद्यार्थी · {label}" },
 
   /* Assess flow */
   "assess.chooseStudent": { en: "Choose a student", hi: "विद्यार्थी चुनें" },
@@ -69,11 +92,14 @@ const STRINGS = {
   "assess.addFirst": { en: "Add a student first.", hi: "पहले विद्यार्थी जोड़ें।" },
   "assess.createProfile": { en: "Create profile", hi: "प्रोफ़ाइल बनाएँ" },
   "assess.reading": { en: "Reading", hi: "पढ़ना" },
-  "assess.readingDetail": { en: "A short passage read aloud", hi: "एक छोटा गद्यांश ज़ोर से पढ़ना" },
+  "assess.readingDetail": {
+    en: "Letters, sounds, words, sentences, and passages",
+    hi: "अक्षर, ध्वनियाँ, शब्द, वाक्य और गद्यांश",
+  },
   "assess.numeracy": { en: "Numeracy", hi: "गणित" },
   "assess.numeracyDetail": {
-    en: "A number sequence or place-value read-aloud",
-    hi: "संख्या श्रृंखला या स्थानीय मान का उच्चारण",
+    en: "Numbers, counting, place value, and operations",
+    hi: "संख्याएँ, गिनती, स्थानीय मान और संक्रियाएँ",
   },
   "assess.readingPassage": { en: "Reading passage", hi: "पढ़ने का गद्यांश" },
   "assess.numberSequence": { en: "Number sequence", hi: "संख्या श्रृंखला" },
@@ -137,20 +163,31 @@ const STRINGS = {
 
   /* Worksheets */
   "ws.title": { en: "Practice sheets", hi: "अभ्यास पत्र" },
-  "ws.intro": {
-    en: "Each sheet comes from the tagged bank and is tied to a diagnosed gap — not a generic grade pack.",
-    hi: "हर पत्र टैग किए बैंक से आता है और पहचाने गए अंतराल से जुड़ा है — सामान्य ग्रेड-पैक नहीं।",
+  "ws.classIntro": {
+    en: "{n} practice sheets, tied to diagnosed gaps and grouped by class.",
+    hi: "{n} अभ्यास पत्र, पहचाने गए अंतरालों से जुड़े और कक्षा के हिसाब से।",
   },
+  "ws.sheets": { en: "{n} sheets", hi: "{n} पत्र" },
   "ws.empty": {
     en: "No sheets yet. Finish an assessment to generate one.",
     hi: "अभी कोई पत्र नहीं। आकलन पूरा करने पर एक बनेगा।",
   },
   "ws.tier": { en: "tier {tier}", hi: "स्तर {tier}" },
+  "ws.practiced": { en: "Practiced", hi: "अभ्यास पूरा" },
 
   /* Worksheet detail */
   "wsd.print": { en: "Print / save as PDF", hi: "प्रिंट / PDF सहेजें" },
   "wsd.studentRecord": { en: "Student record", hi: "विद्यार्थी रिकॉर्ड" },
   "wsd.notFound": { en: "Sheet not found.", hi: "पत्र नहीं मिला।" },
+  "wsd.markPracticed": {
+    en: "Mark practiced",
+    hi: "अभ्यास पूरा चिह्नित करें",
+  },
+  "wsd.practicedDone": { en: "Practiced ✓", hi: "अभ्यास पूरा ✓" },
+  "wsd.practiceHint": {
+    en: "Marking this practiced moves the gap toward reassessment.",
+    hi: "इसे अभ्यास-पूर्ण चिह्नित करने पर अंतराल दोबारा आकलन की ओर बढ़ता है।",
+  },
 
   /* Worksheet preview */
   "wp.practiceSheet": { en: "Practice sheet · Tier {tier}", hi: "अभ्यास पत्र · स्तर {tier}" },
@@ -221,6 +258,23 @@ const STRINGS = {
     en: "Reload demo class on this phone",
     hi: "इस फ़ोन पर डेमो कक्षा फिर से लोड करें",
   },
+  "sync.reportTitle": { en: "Anonymised reporting", hi: "अनामित रिपोर्टिंग" },
+  "sync.lastSynced": { en: "Last synced {date}", hi: "{date} को सिंक हुआ" },
+  "sync.neverSynced": { en: "Never synced", hi: "अभी सिंक नहीं हुआ" },
+  "sync.queueTitle": { en: "Recent syncs", hi: "हाल के सिंक" },
+  "sync.queueEmpty": {
+    en: "Nothing sent yet — the queue stays on this phone until you sync.",
+    hi: "अभी कुछ नहीं भेजा गया — सिंक करने तक कतार इसी फ़ोन पर रहती है।",
+  },
+  "sync.statusPending": { en: "Pending", hi: "प्रतीक्षा में" },
+  "sync.statusSynced": { en: "Synced", hi: "सिंक हुआ" },
+  "sync.statusFailed": { en: "Failed", hi: "विफल" },
+  "sync.studentsPerDay": { en: "Students per day", hi: "प्रतिदिन विद्यार्थी" },
+  "sync.demoTitle": { en: "Demo data", hi: "डेमो डेटा" },
+  "sync.demoNote": {
+    en: "This replaces everything on this phone with the demo class.",
+    hi: "यह इस फ़ोन का सारा डेटा डेमो कक्षा से बदल देगा।",
+  },
 
   /* Class wall */
   "wall.title": { en: "Class wall", hi: "कक्षा दीवार" },
@@ -239,10 +293,51 @@ const STRINGS = {
   },
   "wall.group": { en: "Group {n}", hi: "समूह {n}" },
 
+  /* Classes overview */
+  "class.title": { en: "Classes", hi: "कक्षाएँ" },
+  "class.subtitle": {
+    en: "Your class sections at a glance — then shared skill gaps for everyone.",
+    hi: "एक नज़र में आपकी कक्षाएँ — फिर सबके साझा सीखने के अंतराल।",
+  },
+  "class.grade": { en: "Class {grade}", hi: "कक्षा {grade}" },
+  "class.students": { en: "{n} students", hi: "{n} विद्यार्थी" },
+  "class.assessed": { en: "{n} assessed", hi: "{n} आकलित" },
+  "class.due": { en: "{n} due", hi: "{n} बाकी" },
+  "class.allCurrent": { en: "All up to date", hi: "सब ताज़ा हैं" },
+  "class.topGaps": { en: "Common gaps", hi: "सामान्य अंतराल" },
+  "class.noGaps": { en: "No gaps recorded yet.", hi: "अभी कोई अंतराल दर्ज नहीं हुआ।" },
+  "class.empty": { en: "No students in this class yet.", hi: "इस कक्षा में अभी कोई विद्यार्थी नहीं।" },
+  "class.addStudent": { en: "Add a student", hi: "विद्यार्थी जोड़ें" },
+  "class.back": { en: "Back to classes", hi: "कक्षाओं में वापस" },
+  "class.assessGrade": { en: "Assess a student", hi: "विद्यार्थी का आकलन करें" },
+  "class.noStudents": {
+    en: "No students in Class {grade} yet. Add the first one to start.",
+    hi: "कक्षा {grade} में अभी कोई विद्यार्थी नहीं। शुरू करने के लिए पहला विद्यार्थी जोड़ें।",
+  },
+
+  /* Assess: category step */
+  "assess.category": { en: "Choose a skill area", hi: "कौशल क्षेत्र चुनें" },
+  "assess.otherGaps": { en: "Other gap options", hi: "अन्य अंतराल विकल्प" },
+  "assess.noStudentsGrade": {
+    en: "No students in Class {grade} yet.",
+    hi: "कक्षा {grade} में अभी कोई विद्यार्थी नहीं।",
+  },
+
+  /* Worksheet preview: activity kinds */
+  "wp.read": { en: "Read", hi: "पढ़ो" },
+  "wp.write": { en: "Write", hi: "लिखो" },
+  "wp.circle": { en: "Circle", hi: "गोला लगाओ" },
+  "wp.match": { en: "Match", hi: "मिलाओ" },
+  "wp.fill": { en: "Fill in", hi: "भरो" },
+  "wp.sequence": { en: "Sequence", hi: "क्रम लगाओ" },
+  "wp.solve": { en: "Solve", hi: "हल करो" },
+
   /* Student detail */
   "sd.history": { en: "Skill-gap history", hi: "अंतराल इतिहास" },
   "sd.noGaps": { en: "No gaps recorded yet.", hi: "अभी कोई अंतराल दर्ज नहीं हुआ।" },
   "sd.reassessNow": { en: "Reassess now", hi: "अभी दोबारा आकलन करें" },
+  "sd.improving": { en: "Improving", hi: "सुधार हो रहा है" },
+  "sd.stillPresent": { en: "Still present", hi: "अभी भी मौजूद" },
   "sd.firstNoticed": { en: "First noticed {date}", hi: "पहली बार {date} को दिखा" },
   "sd.lastSample": { en: "Last sample {date}", hi: "आखिरी नमूना {date} को" },
   "sd.drills": {
@@ -347,7 +442,7 @@ export function t(
   let out = entry ? entry[lang] : key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
-      out = out.replaceAll(`{${k}}`, String(v));
+      out = out.split(`{${k}}`).join(String(v));
     }
   }
   return out;

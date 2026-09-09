@@ -59,6 +59,12 @@ export default {
           ontrack: "hsl(var(--status-ontrack))",
           "ontrack-foreground": "hsl(var(--status-ontrack-foreground))",
         },
+        avatar: {
+          teal: "hsl(var(--avatar-teal))",
+          coral: "hsl(var(--avatar-coral))",
+          yellow: "hsl(var(--avatar-yellow))",
+          lilac: "hsl(var(--avatar-lilac))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

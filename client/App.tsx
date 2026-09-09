@@ -13,7 +13,8 @@ import Assess from "./pages/Assess";
 import Worksheets from "./pages/Worksheets";
 import WorksheetDetail from "./pages/WorksheetDetail";
 import Sync from "./pages/Sync";
-import ClassWall from "./pages/ClassWall";
+import ClassOverview from "./pages/ClassOverview";
+import ClassGrade from "./pages/ClassGrade";
 import StudentDetail from "./pages/StudentDetail";
 import StudentForm from "./pages/StudentForm";
 import NotFound from "./pages/NotFound";
@@ -30,7 +31,8 @@ const App = () => (
           <AppLayout>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/class" element={<ClassWall />} />
+              <Route path="/class" element={<ClassOverview />} />
+              <Route path="/class/grade/:grade" element={<ClassGrade />} />
               <Route path="/assess" element={<Assess />} />
               <Route path="/worksheets" element={<Worksheets />} />
               <Route path="/worksheets/:id" element={<WorksheetDetail />} />

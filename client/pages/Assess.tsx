@@ -1,11 +1,36 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, BookOpen, Calculator, Mic, Square } from "lucide-react";
+import {
+  ArrowDownUp,
+  ArrowLeft,
+  ArrowRightLeft,
+  Blocks,
+  BookOpen,
+  Calculator,
+  Clock,
+  GitCompare,
+  Hash,
+  Layers,
+  ListChecks,
+  ListOrdered,
+  MessageCircle,
+  Mic,
+  Minus,
+  Plus,
+  Puzzle,
+  Repeat,
+  Ruler,
+  Split,
+  Square,
+  Type,
+  Volume2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudentAvatar from "@/components/StudentAvatar";
 import TokenMarker from "@/components/TokenMarker";
 import WorksheetPreview from "@/components/WorksheetPreview";
 import { useApp } from "@/state/AppProvider";
+import { categoriesFor, getCategory } from "@/domain/assessment-categories";
 import { gapTypesFor, getGapType } from "@/domain/competency-registry";
 import { diagnose, matchTranscriptToObservations } from "@/domain/diagnosis";
 import { promptsFor } from "@/domain/prompts";
@@ -21,8 +46,32 @@ import {
   startOptionalWebSpeech,
 } from "@/speech/capabilities";
 import { localizedGapType, localizedPrompt, t } from "@/lib/i18n";
+import type { AssessmentCategory } from "@/domain/assessment-categories";
 
-type Step = "student" | "skill" | "prompt" | "listen" | "mark" | "result";
+type Step = "student" | "skill" | "category" | "prompt" | "listen" | "mark" | "result";
+
+const CATEGORY_ICONS: Record<AssessmentCategory["icon"], typeof BookOpen> = {
+  letters: Type,
+  sound: Volume2,
+  cvc: Blocks,
+  blend: GitCompare,
+  word: BookOpen,
+  sentence: MessageCircle,
+  passage: Layers,
+  fluency: Clock,
+  number: Hash,
+  counting: ListOrdered,
+  sequence: ListChecks,
+  beforeafter: ArrowRightLeft,
+  compare: ArrowDownUp,
+  tens: Split,
+  place: Ruler,
+  add: Plus,
+  sub: Minus,
+  bond: Puzzle,
+  skip: Repeat,
+  problem: Calculator,
+};
 
 export default function Assess() {
   const { snapshot, ready, recordAssessment, language } = useApp();
@@ -30,20 +79,25 @@ export default function Assess() {
   const navigate = useNavigate();
   const preselected = params.get("student");
   const presetSubject = params.get("subject") as Subject | null;
+  const presetGrade = Number(params.get("grade")) || null;
   const relatedGapId = params.get("gap") || undefined;
 
   const [studentId, setStudentId] = useState<string | null>(preselected);
   const [subject, setSubject] = useState<Subject | null>(
     presetSubject === "reading" || presetSubject === "numeracy" ? presetSubject : null,
   );
+  const [category, setCategory] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<AssessmentPrompt | null>(null);
-  const [step, setStep] = useState<Step>(preselected ? (presetSubject ? "prompt" : "skill") : "student");
+  const [step, setStep] = useState<Step>(
+    preselected ? (presetSubject ? "category" : "skill") : "student",
+  );
   const [seconds, setSeconds] = useState(0);
   const [recording, setRecording] = useState(false);
   const [observations, setObservations] = useState<TokenObservation[]>([]);
   const [transcript, setTranscript] = useState("");
   const [notes, setNotes] = useState("");
   const [chosenGap, setChosenGap] = useState<string | null>(null);
+  const [suggestedGapIds, setSuggestedGapIds] = useState<string[]>([]);
   const [diagnosisSummary, setDiagnosisSummary] = useState("");
   const [analysisSource, setAnalysisSource] = useState<AnalysisSource>("teacher-assisted");
   const [saved, setSaved] = useState<{
@@ -65,12 +119,24 @@ export default function Assess() {
     [snapshot.students, studentId],
   );
 
+  const studentList = useMemo(() => {
+    const list = [...snapshot.students].sort((a, b) =>
+      a.rollNo.localeCompare(b.rollNo, undefined, { numeric: true }),
+    );
+    return presetGrade ? list.filter((s) => s.grade === presetGrade) : list;
+  }, [snapshot.students, presetGrade]);
+
+  /* Auto-advance when a category has exactly one prompt. */
   useEffect(() => {
-    if (student && subject && !prompt) {
-      const list = promptsFor(subject, student.grade);
-      if (list.length === 1) setPrompt(list[0]);
+    if (student && subject && category && !prompt) {
+      const list = promptsFor(subject, student.grade, category);
+      if (list.length === 1) {
+        setPrompt(list[0]);
+        setObservations([]);
+        setStep("listen");
+      }
     }
-  }, [student, subject, prompt]);
+  }, [student, subject, category, prompt]);
 
   useEffect(() => {
     return () => {
@@ -114,17 +180,22 @@ export default function Assess() {
 
   function runDiagnosis() {
     if (!prompt) return;
-    const result = diagnose(localizedPrompt(prompt, language), {
-      observations,
-      transcript: transcript || undefined,
-      notes,
-      recordingSeconds: seconds || undefined,
-    }, {
-      transcriptFromWebSpeech: analysisSource === "web-speech-assist",
-      lang: language,
-    });
+    const result = diagnose(
+      localizedPrompt(prompt, language),
+      {
+        observations,
+        transcript: transcript || undefined,
+        notes,
+        recordingSeconds: seconds || undefined,
+      },
+      {
+        transcriptFromWebSpeech: analysisSource === "web-speech-assist",
+        lang: language,
+      },
+    );
     setDiagnosisSummary(result.summary);
     setAnalysisSource(result.analysisSource);
+    setSuggestedGapIds(result.gapTypeIds);
     const preferred = relatedGapId
       ? snapshot.gaps.find((g) => g.id === relatedGapId)?.gapTypeId
       : undefined;
@@ -181,13 +252,30 @@ export default function Assess() {
       ? t(language, "assess.chooseStudent")
       : step === "skill"
         ? t(language, "assess.skill")
-        : step === "prompt"
-          ? t(language, "assess.choosePrompt")
-          : step === "listen"
-            ? t(language, "assess.listen")
-            : step === "mark"
-              ? t(language, "assess.whatHeard")
-              : t(language, "assess.gapTitle");
+        : step === "category"
+          ? t(language, "assess.category")
+          : step === "prompt"
+            ? t(language, "assess.choosePrompt")
+            : step === "listen"
+              ? t(language, "assess.listen")
+              : step === "mark"
+                ? t(language, "assess.whatHeard")
+                : t(language, "assess.gapTitle");
+
+  const backTo = (() => {
+    if (step === "student") return "/";
+    if (step === "skill") return "student";
+    if (step === "category") return "skill";
+    if (step === "prompt") return "category";
+    if (step === "listen") {
+      const many = student && subject && category
+        ? promptsFor(subject, student.grade, category).length > 1
+        : false;
+      return many ? "prompt" : "category";
+    }
+    if (step === "mark") return "listen";
+    return saved ? "/" : "mark";
+  })();
 
   return (
     <div className="space-y-6">
@@ -197,13 +285,8 @@ export default function Assess() {
           size="icon"
           className="rounded-full"
           onClick={() => {
-            if (step === "student") navigate("/");
-            else if (step === "skill") setStep("student");
-            else if (step === "prompt") setStep("skill");
-            else if (step === "listen") setStep(promptsFor(subject!, student!.grade).length > 1 ? "prompt" : "skill");
-            else if (step === "mark") setStep("listen");
-            else if (saved) navigate("/");
-            else setStep("mark");
+            if (backTo === "/") navigate("/");
+            else setStep(backTo as Step);
           }}
         >
           <ArrowLeft className="h-5 w-5" />
@@ -213,20 +296,23 @@ export default function Assess() {
 
       {step === "student" && (
         <div className="space-y-2.5">
-          {snapshot.students.length === 0 && (
+          {studentList.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              {t(language, "assess.addFirst")}{" "}
-              <Link className="font-semibold text-primary" to="/students/new">
+              {presetGrade
+                ? t(language, "assess.noStudentsGrade", { grade: presetGrade })
+                : t(language, "assess.addFirst")}{" "}
+              <Link className="font-semibold text-primary" to={`/students/new${presetGrade ? `?grade=${presetGrade}` : ""}`}>
                 {t(language, "assess.createProfile")}
               </Link>
             </p>
           )}
-          {snapshot.students.map((s) => (
+          {studentList.map((s) => (
             <button
               key={s.id}
               onClick={() => {
                 setStudentId(s.id);
                 setPrompt(null);
+                setCategory(null);
                 setStep("skill");
               }}
               className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3.5 text-left shadow-soft"
@@ -253,8 +339,9 @@ export default function Assess() {
               detail={t(language, "assess.readingDetail")}
               onClick={() => {
                 setSubject("reading");
+                setCategory(null);
                 setPrompt(null);
-                setStep("prompt");
+                setStep("category");
               }}
             />
             <SubjectCard
@@ -264,17 +351,59 @@ export default function Assess() {
               coral
               onClick={() => {
                 setSubject("numeracy");
+                setCategory(null);
                 setPrompt(null);
-                setStep("prompt");
+                setStep("category");
               }}
             />
           </div>
         </div>
       )}
 
-      {step === "prompt" && student && subject && (
+      {step === "category" && student && subject && (
+        <div className="space-y-5">
+          <StudentChip name={student.name} tint={student.avatarTint} grade={student.grade} roll={student.rollNo} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {categoriesFor(subject, student.grade).map((c) => {
+              const Icon = CATEGORY_ICONS[c.icon];
+              const reading = c.subject === "reading";
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => {
+                    setCategory(c.id);
+                    setPrompt(null);
+                    setStep("prompt");
+                  }}
+                  className="flex flex-col items-start gap-2.5 rounded-3xl border border-border bg-card p-4 text-left shadow-soft"
+                >
+                  <span
+                    className={
+                      reading
+                        ? "flex h-10 w-10 items-center justify-center rounded-xl bg-primary/12 text-primary"
+                        : "flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/12 text-secondary"
+                    }
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="font-heading text-[15px] font-bold leading-snug">{c.label}</span>
+                  <span className="text-sm leading-snug text-muted-foreground">{c.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {step === "prompt" && student && subject && category && (
         <div className="space-y-3">
-          {promptsFor(subject, student.grade).map((p) => (
+          {getCategory(category) && (
+            <p className="px-1 text-sm text-muted-foreground">
+              {getCategory(category)!.label} ·{" "}
+              {t(language, "assess.gradeLabel", { grade: student.grade })}
+            </p>
+          )}
+          {promptsFor(subject, student.grade, category).map((p) => (
             <button
               key={p.id}
               onClick={() => {
@@ -297,7 +426,7 @@ export default function Assess() {
         <div className="space-y-5">
           <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {view.subject === "reading" ? t(language, "assess.readingPassage") : t(language, "assess.numberSequence")} · {t(language, "assess.gradeLabel", { grade: student.grade })}
+              {getCategory(prompt.category)?.label ?? (view.subject === "reading" ? t(language, "assess.readingPassage") : t(language, "assess.numberSequence"))} · {t(language, "assess.gradeLabel", { grade: student.grade })}
             </p>
             <p className="mt-2 font-heading text-lg font-bold">{view.title}</p>
             <p className="mt-3 text-[17px] leading-loose">{view.displayText}</p>
@@ -368,27 +497,36 @@ export default function Assess() {
             </p>
             <div className="mt-4 space-y-2">
               <p className="text-sm font-semibold">{t(language, "assess.namedGap")}</p>
-              {gapTypesFor(subject, student.grade).map((g) => {
-                const view = localizedGapType(g, language);
-                return (
-                <label
-                  key={g.id}
-                  className="flex items-start gap-3 rounded-2xl border border-border bg-accent/60 px-3 py-3"
-                >
-                  <input
-                    type="radio"
-                    name="gap"
-                    checked={chosenGap === g.id}
-                    onChange={() => setChosenGap(g.id)}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="block font-heading font-bold">{view.label}</span>
-                    <span className="text-sm text-muted-foreground">{view.description}</span>
-                  </span>
-                </label>
+              <GapRadios
+                gapTypeIds={gapTypesFor(subject, student.grade)
+                  .filter((g) => suggestedGapIds.includes(g.id))
+                  .map((g) => g.id)}
+                suggested
+                chosenGap={chosenGap}
+                onChange={setChosenGap}
+                language={language}
+              />
+              {(() => {
+                const others = gapTypesFor(subject, student.grade).filter(
+                  (g) => !suggestedGapIds.includes(g.id),
                 );
-              })}
+                if (others.length === 0) return null;
+                return (
+                  <details className="rounded-2xl border border-dashed border-border px-3 py-2.5">
+                    <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">
+                      {t(language, "assess.otherGaps")}
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      <GapRadios
+                        gapTypeIds={others.map((g) => g.id)}
+                        chosenGap={chosenGap}
+                        onChange={setChosenGap}
+                        language={language}
+                      />
+                    </div>
+                  </details>
+                );
+              })()}
               <label className="flex items-start gap-3 rounded-2xl border border-dashed border-border px-3 py-3">
                 <input
                   type="radio"
@@ -443,6 +581,55 @@ export default function Assess() {
   );
 }
 
+function GapRadios({
+  gapTypeIds,
+  chosenGap,
+  onChange,
+  language,
+  suggested,
+}: {
+  gapTypeIds: string[];
+  chosenGap: string | null;
+  onChange: (id: string | null) => void;
+  language: import("@/lib/i18n").Language;
+  suggested?: boolean;
+}) {
+  return (
+    <>
+      {gapTypeIds.map((id) => {
+        const g = getGapType(id);
+        if (!g) return null;
+        const view = localizedGapType(g, language);
+        return (
+          <label
+            key={id}
+            className="flex items-start gap-3 rounded-2xl border border-border bg-accent/60 px-3 py-3"
+          >
+            <input
+              type="radio"
+              name="gap"
+              checked={chosenGap === id}
+              onChange={() => onChange(id)}
+              className="mt-1"
+            />
+            <span className="min-w-0">
+              <span className="flex items-center gap-2">
+                <span className="block font-heading font-bold">{view.label}</span>
+                {suggested && (
+                  <span className="shrink-0 rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                    Suggested
+                  </span>
+                )}
+              </span>
+              <span className="text-sm text-muted-foreground">{view.description}</span>
+            </span>
+          </label>
+        );
+      })}
+    </>
+  );
+}
+
 function StudentChip({
   name,
   tint,
@@ -450,7 +637,7 @@ function StudentChip({
   roll,
 }: {
   name: string;
-  tint: "teal" | "coral" | "sand" | "sage";
+  tint: "teal" | "coral" | "yellow" | "lilac";
   grade: number;
   roll: string;
 }) {
@@ -499,4 +686,4 @@ function SubjectCard({
       <span className="text-sm text-muted-foreground">{detail}</span>
     </button>
   );
-}
+}

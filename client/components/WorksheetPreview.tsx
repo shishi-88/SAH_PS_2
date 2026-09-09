@@ -1,8 +1,19 @@
+import { BookOpen, Calculator, Circle, ListOrdered, PenLine, Puzzle, Split } from "lucide-react";
 import { formatShortDate } from "@/domain/ids";
-import type { Student, WorksheetInstance } from "@/domain/types";
+import type { Student, WorksheetInstance, WorksheetItemKind } from "@/domain/types";
 import { getGapType } from "@/domain/competency-registry";
 import { localizedGapType, localizedSheet, t } from "@/lib/i18n";
 import { useApp } from "@/state/AppProvider";
+
+const KIND_META: Record<WorksheetItemKind, { labelKey: string; icon: typeof BookOpen }> = {
+  read: { labelKey: "wp.read", icon: BookOpen },
+  write: { labelKey: "wp.write", icon: PenLine },
+  circle: { labelKey: "wp.circle", icon: Circle },
+  match: { labelKey: "wp.match", icon: Split },
+  fill: { labelKey: "wp.fill", icon: Puzzle },
+  sequence: { labelKey: "wp.sequence", icon: ListOrdered },
+  solve: { labelKey: "wp.solve", icon: Calculator },
+};
 
 export default function WorksheetPreview({
   sheet,
@@ -49,15 +60,30 @@ export default function WorksheetPreview({
         </p>
       </div>
       <ol className="mt-6 space-y-3">
-        {view.items.map((item, i) => (
-          <li key={i} className="rounded-2xl bg-accent/80 px-4 py-3 text-[15px] leading-relaxed">
-            <span className="mr-2 font-heading font-bold text-primary">{i + 1}.</span>
-            {item.prompt}
-            {item.hint ? (
-              <span className="mt-1 block text-sm text-muted-foreground">{item.hint}</span>
-            ) : null}
-          </li>
-        ))}
+        {view.items.map((item, i) => {
+          const meta = item.kind ? KIND_META[item.kind] : undefined;
+          return (
+            <li
+              key={i}
+              className="rounded-2xl bg-accent/80 px-4 py-3 text-[15px] leading-relaxed"
+            >
+              <span className="mr-2 font-heading font-bold text-primary">{i + 1}.</span>
+              {meta && (
+                <span className="mr-2 inline-flex translate-y-[-1px] items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                  <meta.icon className="h-3 w-3" />
+                  {t(language, meta.labelKey)}
+                </span>
+              )}
+              <span>{item.prompt}</span>
+              {item.hint ? (
+                <span className="mt-1 block text-sm text-muted-foreground">{item.hint}</span>
+              ) : null}
+              {item.kind === "write" || item.kind === "fill" || item.kind === "solve" ? (
+                <span className="mt-3 block h-8 w-full border-b-2 border-dotted border-border/80" aria-hidden />
+              ) : null}
+            </li>
+          );
+        })}
       </ol>
       <p className="mt-6 text-xs leading-relaxed text-muted-foreground">{t(language, "wp.footer")}</p>
     </article>

@@ -10,6 +10,11 @@ import {
 import { loadSnapshot, saveSnapshot } from "@/data/storage";
 import { createDemoSnapshot, emptyClassroom } from "@/data/seed";
 import { getGapType } from "@/domain/competency-registry";
+import {
+  markShare,
+  outcomeFromShares,
+  promptTokenCount,
+} from "@/domain/diagnosis";
 import { createId, daysFrom } from "@/domain/ids";
 import { markAssessedInRotation } from "@/domain/rotation";
 import { nextTier, selectWorksheetTemplate } from "@/domain/worksheet-bank";
@@ -44,6 +49,7 @@ interface AppContextValue {
   }) => Promise<{ assessment: Assessment; gap: SkillGapRecord | null; worksheet: WorksheetInstance | null }>;
   resolveGap: (gapId: string) => Promise<void>;
   continueGap: (gapId: string) => Promise<WorksheetInstance | null>;
+  markPracticed: (worksheetId: string) => Promise<void>;
   queueSync: () => Promise<void>;
   flushSync: () => Promise<{ ok: boolean; message: string }>;
   reloadDemo: () => Promise<void>;
@@ -173,17 +179,109 @@ export function AppProvider({ children }: { children: ReactNode }) {
         let gap: SkillGapRecord | null = null;
         let worksheet: WorksheetInstance | null = null;
 
-        if (relatedGapId && !gapTypeId) {
-          /* reassessment with no gap chosen handled by caller */
+        const reassessmentDays = snapshot.classroom.reassessmentDays;
+        const related =
+          (relatedGapId ? gaps.find((g) => g.id === relatedGapId) : undefined) ?? null;
+        const isReassessment = assessment.kind === "reassessment" || related !== null;
+        const clean = assessment.evidence.observations.length === 0;
+
+        if (isReassessment && related) {
+          const sameGap = gapTypeId !== null && gapTypeId === related.gapTypeId;
+          if (clean && !gapTypeId) {
+            /* Clean reassessment → auto-resolve the gap. */
+            gap = {
+              ...related,
+              status: "resolved",
+              resolvedAt: now,
+              lastOutcome: undefined,
+              assessmentIds: [...related.assessmentIds, savedAssessment.id],
+            };
+            gaps = gaps.map((g) => (g.id === gap!.id ? gap! : g));
+          } else if (sameGap) {
+            /* Same gap confirmed → compare with the previous sample for this gap. */
+            const prevId = related.assessmentIds[related.assessmentIds.length - 1];
+            const prev = prevId
+              ? snapshot.assessments.find((a) => a.id === prevId)
+              : undefined;
+            const currentShare = markShare(
+              assessment.evidence.observations.length,
+              promptTokenCount(assessment.promptId),
+            );
+            const previousShare = markShare(
+              prev?.evidence.observations.length ?? 0,
+              prev ? promptTokenCount(prev.promptId) : 0,
+            );
+            const improving =
+              outcomeFromShares(previousShare, currentShare) === "improving";
+            /* Improving keeps the same tier; still present moves to a harder tier. */
+            const tier = improving
+              ? related.currentTier
+              : nextTier(related.currentTier);
+            gap = {
+              ...related,
+              status: "active",
+              resolvedAt: null,
+              lastDetectedAt: now,
+              currentTier: tier,
+              lastOutcome: improving ? "improving" : "still-present",
+              assessmentIds: [...related.assessmentIds, savedAssessment.id],
+              reassessmentDueAt: daysFrom(now, reassessmentDays),
+            };
+            gaps = gaps.map((g) => (g.id === gap!.id ? gap! : g));
+            if (!improving) {
+              /* Still present → a harder sheet at the new tier. */
+              const template = selectWorksheetTemplate(
+                gap.gapTypeId,
+                student.grade,
+                gap.subject,
+                tier,
+              );
+              if (template) {
+                worksheet = personalizeSheet(template, student, gap, tier);
+                worksheets = [...worksheets, worksheet];
+                gap = {
+                  ...gap,
+                  worksheetIds: [...gap.worksheetIds, worksheet.id],
+                };
+                gaps = gaps.map((g) => (g.id === gap!.id ? gap! : g));
+              }
+            }
+          } else if (gapTypeId) {
+            /* A different gap now explains the errors → the old gap is superseded. */
+            gaps = gaps.map((g) =>
+              g.id === related.id
+                ? {
+                    ...g,
+                    status: "resolved" as const,
+                    resolvedAt: now,
+                    assessmentIds: [...g.assessmentIds, savedAssessment.id],
+                  }
+                : g,
+            );
+          } else {
+            /* Errors marked but no named gap → keep the gap open, reset the clock. */
+            gap = {
+              ...related,
+              status: "active",
+              resolvedAt: null,
+              lastDetectedAt: now,
+              assessmentIds: [...related.assessmentIds, savedAssessment.id],
+              reassessmentDueAt: daysFrom(now, reassessmentDays),
+            };
+            gaps = gaps.map((g) => (g.id === gap!.id ? gap! : g));
+          }
         }
 
-        if (gapTypeId) {
+        /* Create or update the gap for the chosen type (same-gap confirmations
+           were already handled above). */
+        if (gapTypeId && !(isReassessment && related && related.gapTypeId === gapTypeId)) {
           const type = getGapType(gapTypeId);
           const existing =
             gaps.find(
               (g) =>
-                g.id === relatedGapId ||
-                (g.studentId === studentId && g.gapTypeId === gapTypeId && g.status === "active"),
+                g.studentId === studentId &&
+                g.gapTypeId === gapTypeId &&
+                g.status === "active",
             ) ?? null;
           if (existing) {
             gap = {
@@ -192,7 +290,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               status: "active",
               resolvedAt: null,
               assessmentIds: [...existing.assessmentIds, savedAssessment.id],
-              reassessmentDueAt: daysFrom(now, snapshot.classroom.reassessmentDays),
+              reassessmentDueAt: daysFrom(now, reassessmentDays),
             };
             gaps = gaps.map((g) => (g.id === gap!.id ? gap! : g));
           } else if (type) {
@@ -206,7 +304,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               lastDetectedAt: now,
               resolvedAt: null,
               currentTier: 1,
-              reassessmentDueAt: daysFrom(now, snapshot.classroom.reassessmentDays),
+              reassessmentDueAt: daysFrom(now, reassessmentDays),
               worksheetIds: [],
               assessmentIds: [savedAssessment.id],
             };
@@ -231,7 +329,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        savedAssessment.relatedGapId = gap?.id;
+        savedAssessment.relatedGapId = gap?.id ?? relatedGapId;
         const students = snapshot.students.map((s) =>
           s.id === studentId ? { ...s, lastAssessedAt: now } : s,
         );
@@ -259,6 +357,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
             g.id === gapId
               ? { ...g, status: "resolved", resolvedAt: now }
               : g,
+          ),
+        });
+      },
+      markPracticed: async (worksheetId) => {
+        const now = new Date().toISOString();
+        await save({
+          ...snapshot,
+          worksheets: snapshot.worksheets.map((w) =>
+            w.id === worksheetId
+              ? { ...w, status: "practiced" as const, practicedAt: now }
+              : w,
           ),
         });
       },
@@ -379,6 +488,7 @@ function personalizeSheet(
     templateId: template.id,
     assignedAt: new Date().toISOString(),
     tier,
+    status: "assigned",
     title: template.title,
     focus: `${template.focus} · for ${student.name.split(" ")[0]}`,
     items: template.items,

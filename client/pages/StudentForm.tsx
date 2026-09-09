@@ -1,29 +1,32 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/state/AppProvider";
+import { t } from "@/lib/i18n";
 import type { AvatarTint, Grade } from "@/domain/types";
 
-const tints: AvatarTint[] = ["teal", "coral", "sand", "sage"];
+const tints: AvatarTint[] = ["teal", "coral", "yellow", "lilac"];
 
 export default function StudentForm() {
   const { id } = useParams();
+  const [params] = useSearchParams();
+  const presetGrade = (Number(params.get("grade")) || undefined) as Grade | undefined;
   const navigate = useNavigate();
-  const { snapshot, upsertStudent, ready } = useApp();
+  const { snapshot, upsertStudent, ready, language } = useApp();
   const existing = snapshot.students.find((s) => s.id === id);
 
   const [name, setName] = useState(existing?.name ?? "");
-  const [grade, setGrade] = useState<Grade>(existing?.grade ?? 1);
+  const [grade, setGrade] = useState<Grade>(existing?.grade ?? presetGrade ?? 1);
   const [rollNo, setRollNo] = useState(existing?.rollNo ?? "");
   const [avatarTint, setAvatarTint] = useState<AvatarTint>(existing?.avatarTint ?? "teal");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     setName(existing?.name ?? "");
-    setGrade(existing?.grade ?? 1);
+    setGrade(existing?.grade ?? presetGrade ?? 1);
     setRollNo(existing?.rollNo ?? "");
     setAvatarTint(existing?.avatarTint ?? "teal");
-  }, [existing?.id]);
+  }, [existing?.id, presetGrade]);
 
   if (!ready) return null;
 
@@ -46,10 +49,10 @@ export default function StudentForm() {
       }}
     >
       <h1 className="font-heading text-2xl font-bold">
-        {existing ? "Edit student" : "Add a student"}
+        {existing ? t(language, "sf.edit") : t(language, "sf.add")}
       </h1>
       <label className="block text-sm font-semibold">
-        Name
+        {t(language, "sf.name")}
         <input
           required
           className="mt-1 h-12 w-full rounded-2xl border border-border bg-card px-3 text-base font-normal"
@@ -58,19 +61,19 @@ export default function StudentForm() {
         />
       </label>
       <label className="block text-sm font-semibold">
-        Grade
+        {t(language, "sf.grade")}
         <select
           className="mt-1 h-12 w-full rounded-2xl border border-border bg-card px-3 text-base font-normal"
           value={grade}
           onChange={(e) => setGrade(Number(e.target.value) as Grade)}
         >
-          <option value={1}>Class 1</option>
-          <option value={2}>Class 2</option>
-          <option value={3}>Class 3</option>
+          <option value={1}>{t(language, "sf.class1")}</option>
+          <option value={2}>{t(language, "sf.class2")}</option>
+          <option value={3}>{t(language, "sf.class3")}</option>
         </select>
       </label>
       <label className="block text-sm font-semibold">
-        Roll / local ID
+        {t(language, "sf.roll")}
         <input
           required
           className="mt-1 h-12 w-full rounded-2xl border border-border bg-card px-3 text-base font-normal"
@@ -79,7 +82,7 @@ export default function StudentForm() {
         />
       </label>
       <fieldset>
-        <legend className="text-sm font-semibold">Avatar colour</legend>
+        <legend className="text-sm font-semibold">{t(language, "sf.avatarColor")}</legend>
         <div className="mt-2 flex gap-2">
           {tints.map((t) => (
             <button
@@ -90,12 +93,12 @@ export default function StudentForm() {
                 avatarTint === t ? "ring-2 ring-primary" : ""
               } ${
                 t === "teal"
-                  ? "bg-primary/20"
+                  ? "bg-avatar-teal/20"
                   : t === "coral"
-                    ? "bg-secondary/25"
-                    : t === "sand"
-                      ? "bg-status-attention/30"
-                      : "bg-status-ontrack/25"
+                    ? "bg-avatar-coral/20"
+                    : t === "yellow"
+                      ? "bg-avatar-yellow/30"
+                      : "bg-avatar-lilac/25"
               }`}
             >
               {t}
@@ -104,7 +107,7 @@ export default function StudentForm() {
         </div>
       </fieldset>
       <Button className="w-full rounded-full" size="lg" disabled={busy}>
-        {existing ? "Save changes" : "Save student"}
+        {existing ? t(language, "sf.saveChanges") : t(language, "sf.saveStudent")}
       </Button>
     </form>
   );

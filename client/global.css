@@ -5,63 +5,69 @@
 @config "../tailwind.config.ts";
 @layer base {
   /**
-   * ListenRight theme
+   * Sahayak theme
    *
-   * Navy + orange, flat colors only. No purple, no gradients, no glow,
-   * no pastel wash. Navy carries structure/nav/primary CTA.
-   * Orange carries progress/attention. Background reads as a real
-   * warm neutral, not flat gray. Light mode only, by design.
+   * Cool white / light-lavender canvas with a blue-periwinkle primary,
+   * purple-lilac secondary, coral-peach accent, and yellow attention
+   * accents. Flat colors, no gradients, no glow. Light mode only, by
+   * design — built for a teacher's phone in a bright classroom.
    * tailwind.config.ts expects the following color variables to be expressed as HSL values.
    * A different format will require also updating the theme in tailwind.config.ts.
    */
   :root {
-    --background: 30 25% 93%;
-    --foreground: 215 35% 14%;
+    --background: 248 45% 97%;
+    --foreground: 245 42% 16%;
     --card: 0 0% 100%;
-    --card-foreground: 215 35% 14%;
+    --card-foreground: 245 42% 16%;
     --popover: 0 0% 100%;
-    --popover-foreground: 215 35% 14%;
+    --popover-foreground: 245 42% 16%;
 
-    /* Navy - structure / nav / primary CTA */
-    --primary: 215 55% 24%;
+    /* Periwinkle blue - structure / nav / primary CTA */
+    --primary: 230 58% 52%;
     --primary-foreground: 0 0% 100%;
 
-    /* Orange - progress / secondary emphasis */
-    --secondary: 24 92% 54%;
+    /* Purple-lilac - secondary emphasis / assessment */
+    --secondary: 264 58% 58%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 30 20% 87%;
-    --muted-foreground: 215 12% 40%;
-    --accent: 24 80% 90%;
-    --accent-foreground: 24 70% 22%;
+    --muted: 248 32% 92%;
+    --muted-foreground: 248 14% 44%;
+    --accent: 22 88% 89%;
+    --accent-foreground: 20 70% 26%;
 
-    /* Red - priority / errors, distinct from orange secondary */
+    /* Red - priority / errors, distinct from coral accents */
     --destructive: 355 70% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 18% 80%;
-    --input: 30 18% 80%;
-    --ring: 215 55% 24%;
+    --border: 248 26% 86%;
+    --input: 248 26% 86%;
+    --ring: 230 58% 52%;
     --radius: 0.375rem;
 
     /* Gap-status indicators */
     --status-priority: 355 70% 52%;                /* Red */
     --status-priority-foreground: 0 0% 100%;
-    --status-attention: 32 90% 48%;                 /* Amber-orange, darker for contrast */
+    --status-attention: 44 92% 48%;                 /* Yellow, darker for contrast on white text */
     --status-attention-foreground: 0 0% 100%;
     --status-ontrack: 152 50% 30%;                  /* Green */
     --status-ontrack-foreground: 0 0% 100%;
 
-    --shadow-color: 215 40% 15%;
+    /* Avatar tints: teal, coral, yellow, lilac */
+    --avatar-teal: 186 65% 40%;
+    --avatar-coral: 12 78% 55%;
+    --avatar-yellow: 42 92% 46%;
+    --avatar-lilac: 264 62% 62%;
 
-    --sidebar-background: 215 45% 18%;
+    --shadow-color: 248 40% 25%;
+
+    --sidebar-background: 243 45% 22%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 24 92% 54%;
+    --sidebar-primary: 230 58% 70%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 40% 26%;
+    --sidebar-accent: 243 38% 30%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 215 35% 28%;
-    --sidebar-ring: 24 92% 54%;
+    --sidebar-border: 243 32% 34%;
+    --sidebar-ring: 264 58% 70%;
   }
 }
 @layer base {

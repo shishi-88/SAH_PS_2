@@ -2,10 +2,16 @@ import { cn } from "@/lib/utils";
 import type { AvatarTint } from "@/domain/types";
 
 const tintClasses: Record<AvatarTint, string> = {
-  teal: "bg-primary/15 text-primary",
-  coral: "bg-secondary/20 text-secondary",
-  sand: "bg-status-attention/25 text-status-attention-foreground",
-  sage: "bg-status-ontrack/20 text-status-ontrack-foreground",
+  teal: "bg-avatar-teal/20 text-avatar-teal",
+  coral: "bg-avatar-coral/20 text-avatar-coral",
+  yellow: "bg-avatar-yellow/25 text-avatar-yellow",
+  lilac: "bg-avatar-lilac/20 text-avatar-lilac",
+};
+
+/** Legacy tints stored by older builds map to the closest current colour. */
+const legacyTints: Record<string, string> = {
+  sand: tintClasses.yellow,
+  sage: tintClasses.lilac,
 };
 
 export default function StudentAvatar({
@@ -31,7 +37,7 @@ export default function StudentAvatar({
     <span
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full font-heading font-bold",
-        tintClasses[tint],
+        tintClasses[tint] ?? legacyTints[tint] ?? tintClasses.yellow,
         sizeClasses,
         className,
       )}

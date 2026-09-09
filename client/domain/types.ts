@@ -1,13 +1,15 @@
 export type Grade = 1 | 2 | 3;
 export type Subject = "reading" | "numeracy";
 export type GapLifecycle = "active" | "resolved";
+/** Outcome of the latest reassessment of a still-open gap. */
+export type GapOutcome = "improving" | "still-present";
 export type GapUrgency = "new" | "watch" | "persistent";
 export type WorksheetTier = 1 | 2 | 3;
 export type MappingSource = "demo" | "verified";
 export type TokenError = "wrong" | "skipped" | "hesitation";
 export type AnalysisSource = "teacher-assisted" | "rule-engine" | "web-speech-assist";
 export type AssessmentKind = "initial" | "reassessment";
-export type AvatarTint = "teal" | "coral" | "sand" | "sage";
+export type AvatarTint = "teal" | "coral" | "yellow" | "lilac";
 
 export interface Classroom {
   id: string;
@@ -39,7 +41,10 @@ export interface PromptToken {
 export interface AssessmentPrompt {
   id: string;
   subject: Subject;
-  grade: Grade;
+  /** Grades this prompt is appropriate for. */
+  grades: Grade[];
+  /** Skill category id, e.g. "cvc-words" — see assessment-categories. */
+  category: string;
   title: string;
   instruction: string;
   displayText: string;
@@ -84,6 +89,8 @@ export interface SkillGapRecord {
   gapTypeId: string;
   subject: Subject;
   status: GapLifecycle;
+  /** Set by reassessment: "improving" (fewer errors than last sample) or "still-present". */
+  lastOutcome?: GapOutcome;
   firstDetectedAt: string;
   lastDetectedAt: string;
   resolvedAt: string | null;
@@ -93,9 +100,22 @@ export interface SkillGapRecord {
   assessmentIds: string[];
 }
 
+export type WorksheetItemKind =
+  | "read"
+  | "write"
+  | "circle"
+  | "match"
+  | "fill"
+  | "sequence"
+  | "solve";
+
+export type WorksheetStatus = "assigned" | "practiced";
+
 export interface WorksheetItem {
   prompt: string;
   hint?: string;
+  /** Activity type used by the worksheet preview to pick a layout. */
+  kind?: WorksheetItemKind;
 }
 
 export interface WorksheetInstance {
@@ -105,6 +125,9 @@ export interface WorksheetInstance {
   templateId: string;
   assignedAt: string;
   tier: WorksheetTier;
+  /** Optional for snapshots saved before practice tracking existed. */
+  status?: WorksheetStatus;
+  practicedAt?: string;
   title: string;
   focus: string;
   items: WorksheetItem[];

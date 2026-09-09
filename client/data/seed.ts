@@ -1,4 +1,5 @@
 import { createId, daysAgoIso, daysFrom } from "@/domain/ids";
+import { selectWorksheetTemplate } from "@/domain/worksheet-bank";
 import type {
   AppSnapshot,
   Assessment,
@@ -9,7 +10,7 @@ import type {
   WorksheetInstance,
 } from "@/domain/types";
 
-const TINTS: AvatarTint[] = ["teal", "coral", "sand", "sage"];
+const TINTS: AvatarTint[] = ["teal", "coral", "yellow", "lilac"];
 
 export function emptyClassroom(): Classroom {
   return {
@@ -98,17 +99,51 @@ export function createDemoSnapshot(): AppSnapshot {
     g.assessmentIds = [assessments[i].id];
   });
 
-  const worksheets: WorksheetInstance[] = gaps.map((g, i) => ({
-    id: g.worksheetIds[0],
-    studentId: g.studentId,
-    gapRecordId: g.id,
-    templateId: "seed",
-    assignedAt: g.firstDetectedAt,
-    tier: g.currentTier,
-    title: "Practice sheet (from earlier assessment)",
-    focus: "Linked to the diagnosed gap on this student's record.",
-    items: [{ prompt: "Continue the last drill assigned in class." }],
-  }));
+  /* Sheets whose gap is due for reassessment are marked practiced in the demo,
+     so the Today card shows a mix of ready / needs-practice students. */
+  const PRACTICED_WS = new Set(["ws_demo_1", "ws_demo_3", "ws_demo_5", "ws_demo_7", "ws_demo_9"]);
+
+  const worksheets: WorksheetInstance[] = gaps.map((g) => {
+    const student = students.find((s) => s.id === g.studentId)!;
+    const template = selectWorksheetTemplate(
+      g.gapTypeId,
+      student.grade,
+      g.subject,
+      g.currentTier,
+    );
+    const sheetId = g.worksheetIds[0];
+    const practiced = PRACTICED_WS.has(sheetId);
+    const base = {
+      id: sheetId,
+      studentId: g.studentId,
+      gapRecordId: g.id,
+      assignedAt: g.firstDetectedAt,
+      tier: g.currentTier,
+      status: (practiced ? "practiced" : "assigned") as WorksheetInstance["status"],
+      practicedAt: practiced ? daysAgoIso(4) : undefined,
+    };
+    if (!template) {
+      return {
+        ...base,
+        templateId: "seed",
+        title: "Practice sheet (from earlier assessment)",
+        focus: "Linked to the diagnosed gap on this student's record.",
+        items: [{ prompt: "Continue the last drill assigned in class." }],
+      };
+    }
+    return {
+      ...base,
+      templateId: template.id,
+      title: template.title,
+      focus: `${template.focus} · for ${student.name.split(" ")[0]}`,
+      items: template.items,
+      titleHi: template.titleHi,
+      focusHi: template.focusHi
+        ? `${template.focusHi} · ${student.name.split(" ")[0]} के लिए`
+        : undefined,
+      itemsHi: template.itemsHi,
+    };
+  });
 
   return {
     classroom,

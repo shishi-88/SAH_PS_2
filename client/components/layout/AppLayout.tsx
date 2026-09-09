@@ -1,16 +1,31 @@
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, House, ClipboardList, RefreshCw, Mic, Users } from "lucide-react";
+import {
+  BookOpen,
+  House,
+  ClipboardList,
+  RefreshCw,
+  Mic,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 import { useApp } from "@/state/AppProvider";
 
-const navItems = [
+interface NavItem {
+  to: string;
+  labelKey: string;
+  icon: LucideIcon;
+  primary?: boolean;
+}
+
+const navItems: NavItem[] = [
   { to: "/", labelKey: "nav.home", icon: House },
   { to: "/class", labelKey: "nav.class", icon: Users },
   { to: "/assess", labelKey: "nav.assess", icon: Mic, primary: true },
   { to: "/worksheets", labelKey: "nav.sheets", icon: ClipboardList },
   { to: "/sync", labelKey: "nav.sync", icon: RefreshCw },
-] as const;
+];
 
 function LangButton({
   active,

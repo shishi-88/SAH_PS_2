@@ -29,16 +29,117 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     id: "consonant-blend-bl-cl-st",
     subject: "reading",
     grades: [1, 2, 3],
-    label: "Consonant blending gap: bl/cl/st",
+    label: "Consonant blending gap",
     description:
-      "Drops or swaps the second consonant in blends such as bl, cl, and st.",
-    labelHi: "व्यंजन संयोजन अंतराल: bl/cl/st",
+      "Drops or swaps the second consonant in blends such as bl, cl, st, fl, or pl.",
+    labelHi: "व्यंजन संयोजन अंतराल",
     descriptionHi:
-      "bl, cl और st जैसे संयोजनों में दूसरा व्यंजन छूट जाता है या बदल जाता है।",
+      "bl, cl, st, fl या pl जैसे संयोजनों में दूसरा व्यंजन छूट जाता है या बदल जाता है।",
     mappingSource: "demo",
     mappingNote:
       "Demo mapping to blending/cluster decoding, a common Class 1–3 literacy outcome. Not an official NIPUN code.",
-    tags: ["blend:bl", "blend:cl", "blend:st", "blending"],
+    tags: [
+      "blend:bl",
+      "blend:cl",
+      "blend:st",
+      "blend:fl",
+      "blend:gl",
+      "blend:pl",
+      "blend:cr",
+      "blend:sm",
+      "blend:dr",
+      "blending",
+    ],
+  },
+  {
+    id: "letter-recognition-general",
+    subject: "reading",
+    grades: [1, 2],
+    label: "Letter recognition gap",
+    description:
+      "Confuses or forgets the names of letters when they are shown one at a time.",
+    labelHi: "अक्षर पहचान अंतराल",
+    descriptionHi:
+      "अक्षर एक-एक करके दिखाने पर उनके नाम उलझ जाते हैं या भूल जाते हैं।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to letter-name knowledge (NIPUN-style early literacy). Insert verified codes when available.",
+    tags: ["letter-name"],
+  },
+  {
+    id: "letter-sound-correspondence",
+    subject: "reading",
+    grades: [1, 2],
+    label: "Letter-sound correspondence gap",
+    description:
+      "Knows some letter names but mixes up the sounds the letters make.",
+    labelHi: "अक्षर-ध्वनि संगति अंतराल",
+    descriptionHi:
+      "कुछ अक्षरों के नाम पता हैं पर उनकी ध्वनि उलझ जाती है।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to grapheme–phoneme correspondence in early literacy.",
+    tags: ["letter-sound"],
+  },
+  {
+    id: "cvc-decoding",
+    subject: "reading",
+    grades: [1, 2],
+    label: "CVC word decoding gap",
+    description:
+      "Reads letter by letter and blends the three sounds into short words with difficulty.",
+    labelHi: "CVC शब्द पढ़ने का अंतराल",
+    descriptionHi:
+      "अक्षर-अक्षर पढ़ता है और तीन ध्वनियों को मिलाकर छोटा शब्द बनाने में कठिनाई होती है।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to decoding CVC words, a core Class 1–2 literacy outcome.",
+    tags: ["cvc"],
+  },
+  {
+    id: "word-reading-accuracy",
+    subject: "reading",
+    grades: [1, 2, 3],
+    label: "Word-reading accuracy gap",
+    description:
+      "Guesses or sounds out everyday words instead of reading them accurately.",
+    labelHi: "शब्द पढ़ने की सटीकता अंतराल",
+    descriptionHi:
+      "सामान्य शब्दों को सटीक पढ़ने की बजाय अंदाज़ से या अक्षर-अक्षर करके पढ़ा जाता है।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to word-level accuracy in connected reading.",
+    tags: ["word"],
+  },
+  {
+    id: "sentence-fluency",
+    subject: "reading",
+    grades: [1, 2, 3],
+    label: "Sentence reading fluency gap",
+    description:
+      "Reads word by word with pauses, losing the flow of short sentences.",
+    labelHi: "वाक्य पढ़ने की गति अंतराल",
+    descriptionHi:
+      "शब्द-शब्द करके रुक-रुक कर पढ़ता है, छोटे वाक्यों की लय खो जाती है।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to sentence-level fluency and phrasing.",
+    tags: ["sentence"],
+  },
+  {
+    id: "reading-fluency",
+    subject: "reading",
+    grades: [2, 3],
+    label: "Oral reading fluency gap",
+    description:
+      "Reading is accurate but slow and effortful; long pauses break the flow.",
+    labelHi: "मौखिक पढ़ने की गति अंतराल",
+    descriptionHi:
+      "पढ़ाई सटीक पर धीमी और मेहनत वाली होती है; लंबी रुकावटें लय तोड़ देती हैं।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to oral reading fluency (words correct per minute).",
+    tags: ["fluency"],
   },
   {
     id: "word-position-begin",
@@ -172,6 +273,171 @@ export const COMPETENCY_GAP_TYPES: CompetencyGapType[] = [
     mappingNote:
       "Demo mapping to reverse counting / number sequence. Not a verified official code.",
     tags: ["backward"],
+  },
+  {
+    id: "number-recognition",
+    subject: "numeracy",
+    grades: [1, 2],
+    label: "Number recognition gap",
+    description:
+      "Confuses or forgets the names of numerals when they are shown one at a time.",
+    labelHi: "संख्या पहचान अंतराल",
+    descriptionHi:
+      "संख्याएँ एक-एक करके दिखाने पर उनके नाम उलझ जाते हैं या भूल जाते हैं।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to numeral recognition in early number sense.",
+    tags: ["number"],
+  },
+  {
+    id: "counting-accuracy",
+    subject: "numeracy",
+    grades: [1, 2],
+    label: "Counting accuracy gap",
+    description:
+      "Skips numbers, repeats numbers, or loses the order when counting aloud.",
+    labelHi: "गिनती सटीकता अंतराल",
+    descriptionHi:
+      "ज़ोर से गिनते समय संख्याएँ छूटती, दोहराई जाती हैं या क्रम भटक जाता है।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to stable-order counting (Class 1–2 numeracy).",
+    tags: ["counting"],
+  },
+  {
+    id: "number-sequencing",
+    subject: "numeracy",
+    grades: [1, 2, 3],
+    label: "Number sequencing gap",
+    description:
+      "Finds it hard to continue a number sequence forward or backward.",
+    labelHi: "संख्या अनुक्रम अंतराल",
+    descriptionHi:
+      "संख्या अनुक्रम को आगे या पीछे जारी रखने में कठिनाई होती है।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to number sequence and counting-on skills.",
+    tags: ["sequence"],
+  },
+  {
+    id: "before-after",
+    subject: "numeracy",
+    grades: [1, 2],
+    label: "Before/after number gap",
+    description:
+      "Cannot say which number comes immediately before or after a given number.",
+    labelHi: "पहले/बाद संख्या अंतराल",
+    descriptionHi:
+      "किसी संख्या से ठीक पहले या बाद आने वाली संख्या नहीं बता पाता।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to number-neighbour knowledge (before/after).",
+    tags: ["before-after"],
+  },
+  {
+    id: "number-comparison",
+    subject: "numeracy",
+    grades: [1, 2, 3],
+    label: "Number comparison gap",
+    description:
+      "Mixed up about which of two numbers is bigger or smaller.",
+    labelHi: "संख्या तुलना अंतराल",
+    descriptionHi:
+      "दो संख्याओं में से कौन बड़ी या छोटी है, इसमें उलझन होती है।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to comparing quantities and numerals.",
+    tags: ["compare"],
+  },
+  {
+    id: "tens-ones",
+    subject: "numeracy",
+    grades: [1, 2],
+    label: "Tens and ones gap",
+    description:
+      "Cannot break a two-digit number into tens and ones.",
+    labelHi: "दहाई-इकाई अंतराल",
+    descriptionHi:
+      "दो अंकों की संख्या को दहाई और इकाई में नहीं बाँट पाता।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to base-ten structure of two-digit numbers.",
+    tags: ["tens-ones"],
+  },
+  {
+    id: "addition-facts",
+    subject: "numeracy",
+    grades: [1, 2, 3],
+    label: "Addition facts gap",
+    description:
+      "Hesitates or makes errors on simple addition within 20 and beyond.",
+    labelHi: "जोड़ (योग) अंतराल",
+    descriptionHi:
+      "सरल जोड़ (20 के भीतर और आगे) में रुकावट या गलतियाँ होती हैं।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to addition fact fluency (Class 1–3).",
+    tags: ["addition"],
+  },
+  {
+    id: "subtraction-facts",
+    subject: "numeracy",
+    grades: [1, 2, 3],
+    label: "Subtraction facts gap",
+    description:
+      "Hesitates or makes errors on simple subtraction facts.",
+    labelHi: "घटाव अंतराल",
+    descriptionHi:
+      "सरल घटाव के सवालों में रुकावट या गलतियाँ होती हैं।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to subtraction fact fluency (Class 1–3).",
+    tags: ["subtraction"],
+  },
+  {
+    id: "number-bonds",
+    subject: "numeracy",
+    grades: [1, 2, 3],
+    label: "Number bonds gap",
+    description:
+      "Cannot recall the pairs that make a target number such as 10 or 20.",
+    labelHi: "संख्या जोड़े (बॉन्ड्स) अंतराल",
+    descriptionHi:
+      "लक्ष्य संख्या (जैसे 10 या 20) बनाने वाले जोड़े याद नहीं रहते।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to part-part-whole number relationships.",
+    tags: ["bonds"],
+  },
+  {
+    id: "skip-counting",
+    subject: "numeracy",
+    grades: [1, 2, 3],
+    label: "Skip counting gap",
+    description:
+      "Loses the rhythm when counting by 2s, 5s, or 10s.",
+    labelHi: "छलाँग गिनती अंतराल",
+    descriptionHi:
+      "2, 5 या 10 की छलाँग में गिनते समय लय टूट जाती है।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to skip counting / multiples (Class 1–3).",
+    tags: ["skip"],
+  },
+  {
+    id: "word-problems",
+    subject: "numeracy",
+    grades: [2, 3],
+    label: "Word problem solving gap",
+    description:
+      "Finds it hard to turn a simple story into the right addition or subtraction.",
+    labelHi: "शाब्दिक समस्या अंतराल",
+    descriptionHi:
+      "सरल कहानी को सही जोड़ या घटाव में बदलने में कठिनाई होती है।",
+    mappingSource: "demo",
+    mappingNote:
+      "Demo mapping to one-step word problem solving (Class 2–3).",
+    tags: ["word-problem"],
   },
 ];
 

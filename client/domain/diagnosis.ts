@@ -1,9 +1,11 @@
 import { t, localizedGapType, type Language } from "@/lib/i18n";
 import { COMPETENCY_GAP_TYPES, getGapType } from "./competency-registry";
+import { ASSESSMENT_PROMPTS } from "./prompts";
 import type {
   AnalysisSource,
   AssessmentPrompt,
   DiagnosisEvidence,
+  GapOutcome,
   Grade,
   Subject,
 } from "./types";
@@ -89,7 +91,7 @@ export function diagnose(
 
   for (const gap of COMPETENCY_GAP_TYPES) {
     if (gap.subject !== prompt.subject) continue;
-    if (!gap.grades.includes(prompt.grade)) continue;
+    if (!gap.grades.some((g) => prompt.grades.includes(g))) continue;
     let score = 0;
     for (const tag of gap.tags) {
       score += taggedErrorCount(prompt, evidence, tag);
@@ -150,4 +152,22 @@ export function diagnose(
 
 export function canDiagnose(subject: Subject, grade: Grade): boolean {
   return COMPETENCY_GAP_TYPES.some((g) => g.subject === subject && g.grades.includes(grade));
+}
+
+/** Number of tokens in a prompt, used to compare error rates across different prompts. */
+export function promptTokenCount(promptId: string): number {
+  return ASSESSMENT_PROMPTS.find((p) => p.id === promptId)?.tokens.length ?? 0;
+}
+
+/** Share of tokens marked as errors; falls back to the raw count for unknown prompts. */
+export function markShare(marked: number, total: number): number {
+  return total > 0 ? marked / total : marked;
+}
+
+/** Compares the current sample with the previous one for the same gap. */
+export function outcomeFromShares(
+  previousShare: number,
+  currentShare: number,
+): GapOutcome {
+  return currentShare < previousShare ? "improving" : "still-present";
 }

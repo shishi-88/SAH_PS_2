@@ -2,7 +2,15 @@ import type { AggregatedGapReport, ClassSizeBand } from "@shared/api";
 import { t, localizedGapType, type Language } from "@/lib/i18n";
 import { getGapType } from "./competency-registry";
 import { weeksBetween } from "./ids";
-import type { GapUrgency, Grade, SkillGapRecord, Student } from "./types";
+import { rotationView } from "./rotation";
+import type {
+  Classroom,
+  GapUrgency,
+  Grade,
+  SkillGapRecord,
+  Student,
+  WorksheetInstance,
+} from "./types";
 
 export interface GapGroup {
   gapTypeId: string;
@@ -21,6 +29,49 @@ export interface SuggestedGroup {
   reason: string;
   gapTypeId: string;
   studentIds: string[];
+}
+
+export interface GradeClassStats {
+  grade: Grade;
+  /** Students enrolled in this grade. */
+  total: number;
+  /** Students with at least one completed assessment. */
+  assessedCount: number;
+  /** Active gaps whose reassessment date has passed. */
+  dueCount: number;
+  /** Most common active gap types, highest first. */
+  topGapTypeIds: { gapTypeId: string; count: number }[];
+}
+
+/** Per-grade summary used by the Classes overview cards. */
+export function gradeStats(
+  students: Student[],
+  gaps: SkillGapRecord[],
+  grade: Grade,
+  now = Date.now(),
+): GradeClassStats {
+  const inGrade = students.filter((s) => s.grade === grade);
+  const ids = new Set(inGrade.map((s) => s.id));
+  const gradeGaps = gaps.filter(
+    (g) => g.status === "active" && ids.has(g.studentId),
+  );
+  const counts = new Map<string, number>();
+  for (const g of gradeGaps) {
+    counts.set(g.gapTypeId, (counts.get(g.gapTypeId) ?? 0) + 1);
+  }
+  const topGapTypeIds = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([gapTypeId, count]) => ({ gapTypeId, count }));
+  return {
+    grade,
+    total: inGrade.length,
+    assessedCount: inGrade.filter((s) => s.lastAssessedAt).length,
+    dueCount: gradeGaps.filter(
+      (g) => new Date(g.reassessmentDueAt).getTime() <= now,
+    ).length,
+    topGapTypeIds,
+  };
 }
 
 export function urgencyForGap(gap: SkillGapRecord, now = Date.now()): GapUrgency {
@@ -110,6 +161,96 @@ export function suggestSmallGroups(
       studentIds: g.studentIds,
     };
   });
+}
+
+/**
+ * Teacher-facing stage of one gap, derived from existing records.
+ * - needs-practice: open gap whose latest sheet has not been marked practiced
+ * - practicing: sheet practiced, reassessment not due yet
+ * - ready: sheet practiced and the reassessment date has passed
+ * - resolved: gap closed
+ */
+export type GapStage = "needs-practice" | "practicing" | "ready" | "resolved";
+
+export function gapStage(
+  gap: SkillGapRecord,
+  worksheets: WorksheetInstance[],
+  now = Date.now(),
+): GapStage {
+  if (gap.status === "resolved") return "resolved";
+  const practiced = worksheets.some(
+    (w) => w.gapRecordId === gap.id && w.status === "practiced",
+  );
+  const due = new Date(gap.reassessmentDueAt).getTime() <= now;
+  if (practiced && due) return "ready";
+  if (practiced) return "practicing";
+  return "needs-practice";
+}
+
+export interface TodayGroupAction {
+  gapTypeId: string;
+  studentCount: number;
+}
+
+export interface TodayActions {
+  /** Next students in the rotation without an open-gap action already. */
+  assessStudents: Student[];
+  /** Open gaps whose sheet is practiced and whose reassessment date has passed. */
+  reassessGaps: SkillGapRecord[];
+  /** Students with an open gap that has no practiced sheet yet. */
+  practiceStudents: Student[];
+  /** Top shared gap affecting 3+ students, if any. */
+  group: TodayGroupAction | null;
+  allClear: boolean;
+}
+
+/** Derives what the teacher should do today — no new storage, all from existing records. */
+export function buildTodayActions(
+  classroom: Classroom,
+  students: Student[],
+  gaps: SkillGapRecord[],
+  worksheets: WorksheetInstance[],
+  now = Date.now(),
+): TodayActions {
+  const readyGaps: SkillGapRecord[] = [];
+  const practiceIds = new Set<string>();
+  const busyIds = new Set<string>();
+  for (const g of gaps) {
+    const stage = gapStage(g, worksheets, now);
+    if (stage === "ready") {
+      readyGaps.push(g);
+      busyIds.add(g.studentId);
+    } else if (stage === "needs-practice") {
+      practiceIds.add(g.studentId);
+      busyIds.add(g.studentId);
+    }
+  }
+
+  const rotation = rotationView(classroom, students);
+  const assessStudents = rotation.remainingIds
+    .filter((id) => !busyIds.has(id))
+    .slice(0, rotation.studentsPerDay)
+    .map((id) => students.find((s) => s.id === id))
+    .filter((s): s is Student => Boolean(s));
+
+  const practiceStudents = students.filter((s) => practiceIds.has(s.id));
+
+  const topGroup = buildGapGroups(gaps, now).find((g) => g.studentCount >= 3);
+  const group: TodayGroupAction | null = topGroup
+    ? { gapTypeId: topGroup.gapTypeId, studentCount: topGroup.studentCount }
+    : null;
+
+  return {
+    assessStudents,
+    reassessGaps: readyGaps,
+    practiceStudents,
+    group,
+    allClear:
+      assessStudents.length === 0 &&
+      readyGaps.length === 0 &&
+      practiceStudents.length === 0 &&
+      group === null,
+  };
 }
 
 export function classSizeBand(count: number): ClassSizeBand {
