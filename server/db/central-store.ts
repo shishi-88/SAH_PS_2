@@ -23,18 +23,9 @@ class CentralStore {
   public assessments = new Map<string, AssessmentEntity>();
   public learningGaps = new Map<string, LearningGapEntity>();
   public syncLogs: SyncLogEntry[] = [];
-
   constructor() {
-    // Seed default teacher
-    const defaultTeacher: TeacherEntity = {
-      id: "tea_demo",
-      name: "Prerna Sharma",
-      email: "prerna.sharma@primaryschool.edu.in",
-      schoolId: "GPS-104",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.teachers.set(defaultTeacher.id, defaultTeacher);
+    // Seed initial demo data
+    this.seedDemoData();
   }
 
   // --- Classes ---

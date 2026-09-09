@@ -37,8 +37,10 @@ import { promptsFor } from "@/domain/prompts";
 import type {
   AnalysisSource,
   AssessmentPrompt,
+  AvatarTint,
   Subject,
   TokenObservation,
+  WorksheetInstance,
 } from "@/domain/types";
 import {
   inspectSpeechCapability,
@@ -637,7 +639,7 @@ function StudentChip({
   roll,
 }: {
   name: string;
-  tint: "teal" | "coral" | "yellow" | "lilac";
+  tint: AvatarTint;
   grade: number;
   roll: string;
 }) {

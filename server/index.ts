@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { handleDemo, handleSeedDemo } from "./routes/demo";
 import { handleAggregatedGaps, handleListReports } from "./routes/reports";
-import { handleListClasses, handleGetClass, handleUpsertClass } from "./routes/classes";
+import { handleListClasses, handleGetClass, handleUpsertClass, handleDeleteClass } from "./routes/classes";
 import { handleListStudents, handleGetStudent, handleUpsertStudent, handleArchiveStudent } from "./routes/students";
 import { handleGetStudentAssessments, handleUpsertAssessment } from "./routes/assessments";
 import { handleListAllGaps, handleGetStudentGaps, handleUpsertLearningGap } from "./routes/learning-gaps";
@@ -31,6 +31,7 @@ export function createServer() {
   app.get("/api/classes/:id", handleGetClass);
   app.post("/api/classes", handleUpsertClass);
   app.put("/api/classes/:id", handleUpsertClass);
+  app.delete("/api/classes/:id", handleDeleteClass);
 
   // Student endpoints
   app.get("/api/students", handleListStudents);

@@ -6,12 +6,8 @@ const tintClasses: Record<AvatarTint, string> = {
   coral: "bg-avatar-coral/20 text-avatar-coral",
   yellow: "bg-avatar-yellow/25 text-avatar-yellow",
   lilac: "bg-avatar-lilac/20 text-avatar-lilac",
-};
-
-/** Legacy tints stored by older builds map to the closest current colour. */
-const legacyTints: Record<string, string> = {
-  sand: tintClasses.yellow,
-  sage: tintClasses.lilac,
+  sand: "bg-avatar-yellow/25 text-avatar-yellow",
+  sage: "bg-avatar-teal/20 text-avatar-teal",
 };
 
 export default function StudentAvatar({
@@ -37,7 +33,7 @@ export default function StudentAvatar({
     <span
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full font-heading font-bold",
-        tintClasses[tint] ?? legacyTints[tint] ?? tintClasses.yellow,
+        tintClasses[tint] ?? tintClasses.yellow,
         sizeClasses,
         className,
       )}

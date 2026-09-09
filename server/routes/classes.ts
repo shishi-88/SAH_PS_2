@@ -17,9 +17,16 @@ export function handleGetClass(req: Request, res: Response) {
 
 export function handleUpsertClass(req: Request, res: Response) {
   const body = req.body;
-  if (!body.id || !body.name) {
-    return res.status(400).json({ error: "id and name are required" });
+  if (!body.name) {
+    return res.status(400).json({ error: "name is required" });
   }
-  const result = centralStore.upsertClass(body);
+  const id = body.id || (req.params.id ? String(req.params.id) : `class_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`);
+  const result = centralStore.upsertClass({ ...body, id });
   res.status(200).json({ data: result.entity, conflict: result.conflict });
+}
+
+export function handleDeleteClass(req: Request, res: Response) {
+  const id = String(req.params.id);
+  centralStore.classes.delete(id);
+  res.status(200).json({ success: true, message: "Class deleted successfully" });
 }
