@@ -1459,17 +1459,24 @@ export default function CentralPortal() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
         {/* KPI Row */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           <div
             onClick={() => setActiveTab("students")}
-            className="glass-panel p-4 space-y-1 cursor-pointer hover:border-primary/50 transition-all shadow-2xs"
+            className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 group"
           >
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="label-overline">Students</span>
-              <Users className="h-4 w-4 text-primary" />
+            <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity group-hover:scale-110 duration-500">
+               <Users className="h-24 w-24 text-primary" />
             </div>
-            <p className="font-heading text-2xl font-bold text-foreground">{students.length}</p>
-            <span className="text-[10px] text-muted-foreground">Enrolled Pupils →</span>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-primary/10 rounded-xl text-primary ring-1 ring-primary/20">
+                <Users className="h-5 w-5" />
+              </div>
+              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">Students</span>
+            </div>
+            <div className="flex flex-col relative z-10 mt-3">
+               <p className="text-4xl font-black text-slate-800 dark:text-slate-100">{students.length}</p>
+               <span className="text-[11px] font-bold text-primary flex items-center gap-1 mt-2">Enrolled Pupils <ArrowUpRight className="h-3 w-3" /></span>
+            </div>
           </div>
 
           <div
@@ -1477,14 +1484,21 @@ export default function CentralPortal() {
               setGapSubjectFilter("reading");
               setActiveTab("gaps");
             }}
-            className="glass-panel p-4 space-y-1 cursor-pointer hover:border-rose-300 transition-all shadow-2xs"
+            className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-500/10 transition-all duration-300 group"
           >
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="label-overline">Reading Gaps</span>
-              <BookOpen className="h-4 w-4 text-rose-600" />
+            <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity group-hover:scale-110 duration-500">
+               <BookOpen className="h-24 w-24 text-rose-500" />
             </div>
-            <p className="font-heading text-2xl font-bold text-rose-700">{readingGapsCount}</p>
-            <span className="text-[10px] text-muted-foreground">Phonics & Blends →</span>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-rose-500/10 rounded-xl text-rose-600 ring-1 ring-rose-500/20">
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">Reading</span>
+            </div>
+            <div className="flex flex-col relative z-10 mt-3">
+               <p className="text-4xl font-black text-slate-800 dark:text-slate-100">{readingGapsCount}</p>
+               <span className="text-[11px] font-bold text-rose-600 flex items-center gap-1 mt-2">Phonics & Blends <ArrowUpRight className="h-3 w-3" /></span>
+            </div>
           </div>
 
           <div
@@ -1492,49 +1506,80 @@ export default function CentralPortal() {
               setGapSubjectFilter("numeracy");
               setActiveTab("gaps");
             }}
-            className="glass-panel p-4 space-y-1 cursor-pointer hover:border-amber-300 transition-all shadow-2xs"
+            className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300 group"
           >
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="label-overline">Numeracy Gaps</span>
-              <Calculator className="h-4 w-4 text-amber-600" />
+            <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity group-hover:scale-110 duration-500">
+               <Calculator className="h-24 w-24 text-amber-500" />
             </div>
-            <p className="font-heading text-2xl font-bold text-amber-700">{numeracyGapsCount}</p>
-            <span className="text-[10px] text-muted-foreground">Decades & Place Value →</span>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-600 ring-1 ring-amber-500/20">
+                <Calculator className="h-5 w-5" />
+              </div>
+              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">Numeracy</span>
+            </div>
+            <div className="flex flex-col relative z-10 mt-3">
+               <p className="text-4xl font-black text-slate-800 dark:text-slate-100">{numeracyGapsCount}</p>
+               <span className="text-[11px] font-bold text-amber-600 flex items-center gap-1 mt-2">Decades & Place Value <ArrowUpRight className="h-3 w-3" /></span>
+            </div>
           </div>
 
           <div
             onClick={() => setActiveTab("worksheets")}
-            className="glass-panel p-4 space-y-1 cursor-pointer hover:border-secondary/50 transition-all shadow-2xs"
+            className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 group"
           >
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="label-overline">Practice Sheets</span>
-              <ClipboardList className="h-4 w-4 text-secondary" />
+            <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity group-hover:scale-110 duration-500">
+               <ClipboardList className="h-24 w-24 text-indigo-500" />
             </div>
-            <p className="font-heading text-2xl font-bold text-secondary">{allocatedWorksheets.length}</p>
-            <span className="text-[10px] text-muted-foreground">Allocated Drills →</span>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-600 ring-1 ring-indigo-500/20">
+                <ClipboardList className="h-5 w-5" />
+              </div>
+              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">Drills</span>
+            </div>
+            <div className="flex flex-col relative z-10 mt-3">
+               <p className="text-4xl font-black text-slate-800 dark:text-slate-100">{allocatedWorksheets.length}</p>
+               <span className="text-[11px] font-bold text-indigo-600 flex items-center gap-1 mt-2">Allocated Sheets <ArrowUpRight className="h-3 w-3" /></span>
+            </div>
           </div>
 
-          <div className="glass-panel p-4 space-y-1">
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="label-overline">Resolved Gaps</span>
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-5 shadow-xl shadow-emerald-500/20 group">
+            <div className="absolute -top-4 -right-4 p-4 opacity-20 group-hover:opacity-30 transition-opacity group-hover:scale-110 duration-500">
+               <CheckCircle2 className="h-24 w-24 text-white" />
             </div>
-            <p className="font-heading text-2xl font-bold text-emerald-700">{resolvedGapsCount}</p>
-            <span className="text-[10px] text-muted-foreground">Remediated & Verified</span>
+            <div className="flex items-center gap-3 mb-2 relative z-10">
+              <div className="p-2.5 bg-white/20 rounded-xl text-white backdrop-blur-sm ring-1 ring-white/30">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <span className="text-xs font-bold tracking-wider text-emerald-50 uppercase drop-shadow-sm">Resolved</span>
+            </div>
+            <div className="flex flex-col relative z-10 mt-3">
+               <p className="text-4xl font-black text-white drop-shadow-md">{resolvedGapsCount}</p>
+               <span className="text-[11px] font-bold text-emerald-100 flex items-center gap-1 mt-2 drop-shadow-sm">Remediated & Verified <CheckCircle2 className="h-3 w-3" /></span>
+            </div>
           </div>
 
           <div
             onClick={() => setActiveTab("syncLogs")}
-            className="glass-panel p-4 space-y-1 cursor-pointer hover:border-primary/50 transition-all shadow-2xs"
+            className="relative overflow-hidden bg-slate-800 dark:bg-slate-900 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-800/20 transition-all duration-300 group"
           >
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="label-overline">Sync Status</span>
-              <Activity className="h-4 w-4 text-primary" />
+            <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity group-hover:scale-110 duration-500">
+               <Activity className="h-24 w-24 text-slate-400" />
             </div>
-            <p className="font-heading text-sm font-bold text-foreground mt-1 truncate">
-              {supabaseStatus?.connected ? "Cloud Sync Active" : "Local Vault"}
-            </p>
-            <span className="text-[10px] text-muted-foreground">{syncedCount} sync events →</span>
+            <div className="flex items-center gap-3 mb-2 relative z-10">
+              <div className="p-2.5 bg-slate-700 rounded-xl text-slate-300 ring-1 ring-slate-600">
+                <Activity className="h-5 w-5" />
+              </div>
+              <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">Sync Status</span>
+            </div>
+            <div className="flex flex-col relative z-10 mt-3">
+               <div className="flex items-center gap-2 mt-1 mb-2">
+                 <div className={`h-2.5 w-2.5 rounded-full ${supabaseStatus?.connected ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" : "bg-rose-500"}`} />
+                 <p className="text-sm font-bold text-white tracking-wide truncate">
+                   {supabaseStatus?.connected ? "Cloud Sync Active" : "Local Vault"}
+                 </p>
+               </div>
+               <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 mt-1">{syncedCount} sync events <ArrowUpRight className="h-3 w-3" /></span>
+            </div>
           </div>
         </section>
 
