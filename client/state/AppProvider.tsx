@@ -326,6 +326,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       await saveSession(next);
       setSession(next);
+      let students: Student[] = [];
+      if (next.establishedOnline) {
+        try {
+          const stuRes = await fetch("/api/students", {
+            headers: { Authorization: `Bearer ${next.sessionToken}` },
+          });
+          if (stuRes.ok) {
+            const stuData = await stuRes.json();
+            if (Array.isArray(stuData.data) && stuData.data.length > 0) {
+              students = stuData.data.map((s: any) => ({
+                id: s.id,
+                classId: s.classId || next.classroomId,
+                name: s.name,
+                grade: s.grade || 2,
+                rollNo: s.rollNo || "0",
+                avatarTint: s.avatarTint || "teal",
+                createdAt: s.createdAt || new Date().toISOString(),
+                lastAssessedAt: s.lastAssessedAt || null,
+              }));
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
+      if (students.length === 0) {
+        const matching = snapshot.students.filter((s) => s.classId === next.classroomId);
+        if (matching.length > 0) {
+          students = matching;
+        } else {
+          const demo = createDemoSnapshot();
+          students = demo.students.map((s) => ({
+            ...s,
+            id: `stu_${createId("stu")}`,
+            classId: next.classroomId,
+          }));
+        }
+      }
+
       const nextClassroom: Classroom = {
         ...snapshot.classroom,
         id: next.classroomId,
@@ -333,7 +373,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         teacherLabel: next.teacherName,
         schoolName: next.schoolName,
       };
-      const students = snapshot.students.map((s) => ({ ...s, classId: next.classroomId }));
       await save({ ...snapshot, classroom: nextClassroom, students });
       setPhase("ready");
     },

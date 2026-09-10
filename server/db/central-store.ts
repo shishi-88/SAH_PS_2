@@ -90,42 +90,62 @@ class CentralStore {
    */
   public setupTeacher(input: TeacherSetupRequest): SessionContext {
     const now = new Date().toISOString();
-    const existing = this.devices.get(input.deviceId);
-    let teacher: TeacherEntity;
-    let classroom: ClassEntity;
+    const reqTeacherName = input.teacherName.trim();
+    const reqSchoolName = input.schoolName?.trim() || undefined;
+    const reqClassroomName = input.classroomName.trim() || "Class 1–3 Primary Section";
 
-    if (existing) {
-      teacher =
-        this.teachers.get(existing.teacherId) ??
-        this.makeTeacher(input, now);
-      teacher = {
-        ...teacher,
-        name: input.teacherName.trim(),
-        schoolName: input.schoolName?.trim() || teacher.schoolName,
-        updatedAt: now,
-      };
-      this.teachers.set(teacher.id, teacher);
+    const existingDevice = this.devices.get(input.deviceId);
+    let teacher: TeacherEntity | undefined;
+    let classroom: ClassEntity | undefined;
 
-      classroom = this.classes.get(existing.classroomId) ?? this.makeClass(input, teacher.id, now);
-      classroom = {
-        ...classroom,
-        name: input.classroomName.trim(),
-        teacherId: teacher.id,
-        updatedAt: now,
-      };
-      this.classes.set(classroom.id, classroom);
-    } else {
+    // 1. Check if the device is currently bound to a teacher with the SAME name
+    if (existingDevice) {
+      const boundTeacher = this.teachers.get(existingDevice.teacherId);
+      if (boundTeacher && boundTeacher.name.toLowerCase() === reqTeacherName.toLowerCase()) {
+        teacher = boundTeacher;
+        classroom = this.classes.get(existingDevice.classroomId);
+      }
+    }
+
+    // 2. If not matched on device, find an existing teacher by name
+    if (!teacher) {
+      teacher = Array.from(this.teachers.values()).find(
+        (t) => t.name.toLowerCase() === reqTeacherName.toLowerCase()
+      );
+    }
+
+    // 3. If teacher still not found, create a new teacher record
+    if (!teacher) {
       teacher = this.makeTeacher(input, now);
       this.teachers.set(teacher.id, teacher);
+    } else if (reqSchoolName && teacher.schoolName !== reqSchoolName) {
+      teacher = {
+        ...teacher,
+        schoolName: reqSchoolName,
+        updatedAt: now,
+      };
+      this.teachers.set(teacher.id, teacher);
+    }
+
+    // 4. Find or create classroom for this teacher
+    if (!classroom) {
+      classroom = Array.from(this.classes.values()).find(
+        (c) => c.teacherId === teacher!.id && c.name.toLowerCase() === reqClassroomName.toLowerCase()
+      );
+    }
+
+    if (!classroom) {
       classroom = this.makeClass(input, teacher.id, now);
       this.classes.set(classroom.id, classroom);
-      this.devices.set(input.deviceId, {
-        deviceId: input.deviceId,
-        teacherId: teacher.id,
-        classroomId: classroom.id,
-        createdAt: now,
-      });
     }
+
+    // 5. Bind device to this teacher + classroom
+    this.devices.set(input.deviceId, {
+      deviceId: input.deviceId,
+      teacherId: teacher.id,
+      classroomId: classroom.id,
+      createdAt: now,
+    });
 
     const session = this.issueSession(input.deviceId, teacher.id, classroom.id, "teacher");
     syncClassToSupabase(classroom).catch((e) => console.warn("[Supabase Sync Class]", e));
@@ -176,7 +196,12 @@ class CentralStore {
   }
 
   public endSession(token: string): boolean {
-    return this.sessions.delete(token);
+    const session = this.sessions.get(token);
+    if (session) {
+      this.devices.delete(session.deviceId);
+      return this.sessions.delete(token);
+    }
+    return false;
   }
 
   /** Admin (portal) session bound to the seeded school-level teacher. */

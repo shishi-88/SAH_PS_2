@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -33,6 +33,7 @@ import { STORAGE_NOTE_ENCRYPTED } from "@/data/storage";
 import type { SyncQueueItem } from "@/domain/types";
 
 export default function Sync() {
+  const navigate = useNavigate();
   const { snapshot, ready, flushSync, updateClassroom, reloadDemo, session, switchTeacher, language } = useApp();
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -271,6 +272,7 @@ export default function Sync() {
                   setSwitching(true);
                   await switchTeacher();
                   setSwitching(false);
+                  navigate("/setup");
                 }}
               >
                 {t(language, "sync.switchConfirmAction")}

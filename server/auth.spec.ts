@@ -231,6 +231,71 @@ describe("Teacher sessions & backend ownership enforcement", () => {
     expect(students.status).toBe(401);
   });
 
+  it("allows switching teachers on the same device without mutating previous teacher data", async () => {
+    const url = await listen();
+
+    // 1. Teacher A sets up on device 'shared-tablet'
+    const setupARes = await fetch(`${url}/api/auth/setup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deviceId: "shared-tablet",
+        teacherName: "Asha Rani",
+        schoolName: "GPS-101",
+        classroomName: "Class 1 Morning",
+      }),
+    });
+    expect(setupARes.status).toBe(200);
+    const dataA = (await setupARes.json()).data;
+    expect(dataA.teacher.name).toBe("Asha Rani");
+
+    // Teacher A creates student
+    centralStore.upsertStudent({
+      id: "stu_asha_1",
+      classId: dataA.classroom.id,
+      name: "Asha's Student",
+      grade: 1,
+      rollNo: "01",
+      version: 1,
+    });
+
+    // 2. Teacher A switches teacher (ends session)
+    const endRes = await fetch(`${url}/api/auth/end`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionToken: dataA.sessionToken }),
+    });
+    expect(endRes.status).toBe(200);
+
+    // 3. Teacher B sets up on the SAME 'shared-tablet'
+    const setupBRes = await fetch(`${url}/api/auth/setup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deviceId: "shared-tablet",
+        teacherName: "Bina Devi",
+        schoolName: "GPS-101",
+        classroomName: "Class 2 Afternoon",
+      }),
+    });
+    expect(setupBRes.status).toBe(200);
+    const dataB = (await setupBRes.json()).data;
+    expect(dataB.teacher.name).toBe("Bina Devi");
+    expect(dataB.teacher.id).not.toBe(dataA.teacher.id);
+    expect(dataB.classroom.id).not.toBe(dataA.classroom.id);
+
+    // 4. Teacher A's record was NOT mutated/overwritten
+    const teacherAInStore = centralStore.teachers.get(dataA.teacher.id);
+    expect(teacherAInStore?.name).toBe("Asha Rani");
+
+    // 5. Teacher B cannot see Teacher A's student
+    const listRes = await fetch(`${url}/api/students`, {
+      headers: { Authorization: `Bearer ${dataB.sessionToken}` },
+    });
+    const listData = await listRes.json();
+    expect(listData.count).toBe(0);
+  });
+
   it("admin (portal) session sees all classes and students", async () => {
     const url = await listen();
     const admin = centralStore.getAdminSession();

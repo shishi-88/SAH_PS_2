@@ -79,58 +79,25 @@ const App = () => (
             <Route path="/app/*" element={<MobileAppRoutes />} />
             <Route path="/app" element={<MobileAppRoutes />} />
 
-            {/* Direct Mobile Feature URLs */}
-            <Route
-              path="/class/*"
-              element={
-                <AppLayout>
-                  <Routes>
-                    <Route path="/" element={<ClassOverview />} />
-                    <Route path="/grade/:grade" element={<ClassGrade />} />
-                  </Routes>
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/assess"
-              element={
-                <AppLayout>
-                  <Assess />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/worksheets/*"
-              element={
-                <AppLayout>
-                  <Routes>
-                    <Route path="/" element={<Worksheets />} />
-                    <Route path="/:id" element={<WorksheetDetail />} />
-                  </Routes>
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/students/*"
-              element={
-                <AppLayout>
-                  <Routes>
-                    <Route path="/new" element={<StudentForm />} />
-                    <Route path="/:id" element={<StudentDetail />} />
-                    <Route path="/:id/edit" element={<StudentForm />} />
-                  </Routes>
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/sync"
-              element={
-                <AppLayout>
-                  <Sync />
-                </AppLayout>
-              }
-            />
+            {/* Direct Setup route */}
             <Route path="/setup" element={<Setup />} />
+
+            {/* Teacher Mobile App Experience */}
+            <Route path="/mobile/*" element={<MobileAppRoutes />} />
+            <Route path="/mobile" element={<MobileAppRoutes />} />
+            <Route path="/app/*" element={<MobileAppRoutes />} />
+            <Route path="/app" element={<MobileAppRoutes />} />
+
+            {/* Direct Mobile Feature URLs - all protected by MobileAppRoutes session gate */}
+            <Route path="/class/*" element={<MobileAppRoutes />} />
+            <Route path="/class" element={<MobileAppRoutes />} />
+            <Route path="/assess/*" element={<MobileAppRoutes />} />
+            <Route path="/assess" element={<MobileAppRoutes />} />
+            <Route path="/worksheets/*" element={<MobileAppRoutes />} />
+            <Route path="/worksheets" element={<MobileAppRoutes />} />
+            <Route path="/students/*" element={<MobileAppRoutes />} />
+            <Route path="/students" element={<MobileAppRoutes />} />
+            <Route path="/sync" element={<MobileAppRoutes />} />
 
             {/* Fallback */}
             <Route path="*" element={<NotFound />} />

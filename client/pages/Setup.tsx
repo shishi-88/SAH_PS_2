@@ -1,18 +1,16 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { BookOpen, GraduationCap, School, Sparkles, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/state/AppProvider";
 import { t } from "@/lib/i18n";
 
 export default function Setup() {
-  const { language, snapshot, completeSetup, ready } = useApp();
+  const navigate = useNavigate();
+  const { language, completeSetup, ready } = useApp();
   const [teacherName, setTeacherName] = useState("");
   const [schoolName, setSchoolName] = useState("");
-  const [classroomName, setClassroomName] = useState(
-    snapshot.classroom.name && snapshot.classroom.name !== "Morning section · Class 1–3"
-      ? snapshot.classroom.name
-      : "",
-  );
+  const [classroomName, setClassroomName] = useState("");
   const [busy, setBusy] = useState(false);
   const [offlineNote, setOfflineNote] = useState(false);
 
@@ -48,6 +46,7 @@ export default function Setup() {
                   schoolName: schoolName.trim() || undefined,
                   classroomName: classroomName.trim(),
                 });
+                navigate("/mobile");
               } catch {
                 setOfflineNote(true);
               } finally {
