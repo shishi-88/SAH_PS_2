@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Server,
   Database,
@@ -421,6 +421,52 @@ function generateDefaultDemoDataset(): {
   };
 }
 
+type TabKey =
+  | "overview"
+  | "students"
+  | "gaps"
+  | "worksheets"
+  | "interventionCircles"
+  | "classes"
+  | "analytics"
+  | "syncLogs"
+  | "reports"
+  | "workflow";
+
+const TAB_TO_SLUG: Record<TabKey, string> = {
+  overview: "overview",
+  students: "students",
+  gaps: "gaps",
+  worksheets: "worksheets",
+  interventionCircles: "circles",
+  classes: "classes",
+  analytics: "analytics",
+  syncLogs: "import",
+  reports: "reports",
+  workflow: "workflow",
+};
+
+function parseTabParam(rawTab?: string, pathname?: string): TabKey {
+  if (!rawTab) {
+    if (pathname === "/analytics") return "analytics";
+    if (pathname === "/reports") return "reports";
+    if (pathname === "/roster") return "students";
+    return "overview";
+  }
+  const t = rawTab.toLowerCase();
+  if (t === "overview" || t === "dashboard") return "overview";
+  if (t === "students" || t === "pupils" || t === "roster") return "students";
+  if (t === "worksheets" || t === "practice" || t === "bank") return "worksheets";
+  if (t === "gaps" || t === "competencies" || t === "skills") return "gaps";
+  if (t === "circles" || t === "interventioncircles" || t === "groups") return "interventionCircles";
+  if (t === "classes" || t === "classrooms" || t === "grades") return "classes";
+  if (t === "analytics" || t === "charts" || t === "metrics") return "analytics";
+  if (t === "import" || t === "sync" || t === "synclogs" || t === "ingest") return "syncLogs";
+  if (t === "reports" || t === "export" || t === "register") return "reports";
+  if (t === "workflow" || t === "guide" || t === "how-it-works") return "workflow";
+  return "overview";
+}
+
 export default function CentralPortal() {
   const { language, setLanguage, reloadDemo, snapshot } = useApp();
   const portalTokenRef = useRef<string | null>(null);
@@ -525,19 +571,36 @@ export default function CentralPortal() {
   const [gapUrgencyFilter, setGapUrgencyFilter] = useState<"all" | "persistent" | "watch" | "new">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Navigation Tab
-  const [activeTab, setActiveTab] = useState<
-    | "overview"
-    | "students"
-    | "gaps"
-    | "worksheets"
-    | "interventionCircles"
-    | "classes"
-    | "analytics"
-    | "syncLogs"
-    | "reports"
-    | "workflow"
-  >("overview");
+  // Multi-page navigation hooks and state synchronized with URL routes
+  const { tab: urlTab, subId: urlSubId } = useParams<{ tab?: string; subId?: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [activeTab, setActiveTabState] = useState<TabKey>(() => parseTabParam(urlTab, location.pathname));
+
+  useEffect(() => {
+    const resolved = parseTabParam(urlTab, location.pathname);
+    setActiveTabState(resolved);
+  }, [urlTab, location.pathname]);
+
+  const setActiveTab = (newTab: TabKey) => {
+    setActiveTabState(newTab);
+    const slug = TAB_TO_SLUG[newTab] || "overview";
+    const targetPath = newTab === "overview" ? "/portal" : `/portal/${slug}`;
+    if (location.pathname !== targetPath) {
+      navigate(targetPath);
+    }
+  };
+
+  // Deep linking: If URL has student subId (e.g. /portal/students/stu_aarav), open dossier modal
+  useEffect(() => {
+    if (urlSubId && activeTab === "students" && students.length > 0) {
+      const match = students.find((s) => s.id === urlSubId);
+      if (match) {
+        setSelectedStudentDetail(match);
+      }
+    }
+  }, [urlSubId, activeTab, students]);
 
   // Interactive Modals & Drawers
   const [selectedStudentDetail, setSelectedStudentDetail] = useState<StudentEntity | null>(null);
@@ -2581,10 +2644,223 @@ export default function CentralPortal() {
         </div>
       )}
 
+      {/* Institutional Multi-Page Web Navigation Sub-Header */}
+      <nav className="border-b border-border/80 bg-card/95 backdrop-blur-xl sticky top-[73px] z-30 shadow-2xs">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center gap-1.5 overflow-x-auto py-2.5 scrollbar-none">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === "overview"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+              }`}
+            >
+              <Compass className="h-3.5 w-3.5" />
+              <span>{language === "hi" ? "सिंहावलोकन" : "Overview"}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("students")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === "students"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+              }`}
+            >
+              <Users className="h-3.5 w-3.5" />
+              <span>{language === "hi" ? "विद्यार्थी एवं जरूरतें" : "Pupils & Needs"}</span>
+              <span
+                className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-mono font-semibold ${
+                  activeTab === "students" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {students.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("worksheets")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === "worksheets"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+              }`}
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              <span>{language === "hi" ? "अभ्यास पत्रक बैंक" : "Worksheet Bank"}</span>
+              <span
+                className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-mono font-semibold ${
+                  activeTab === "worksheets" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {allocatedWorksheets.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("gaps")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === "gaps"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+              }`}
+            >
+              <AlertCircle className="h-3.5 w-3.5 text-rose-500" />
+              <span>{language === "hi" ? "कौशल अंतराल" : "Skill Gaps"}</span>
+              <span
+                className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
+                  activeTab === "gaps" ? "bg-white/20 text-white" : "bg-rose-50 text-rose-700"
+                }`}
+              >
+                {activeGapsCount}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("interventionCircles")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === "interventionCircles"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+              }`}
+            >
+              <Users className="h-3.5 w-3.5 text-amber-500" />
+              <span>{language === "hi" ? "सहायता समूह" : "Support Circles"}</span>
+              <span
+                className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
+                  activeTab === "interventionCircles" ? "bg-white/20 text-white" : "bg-amber-50 text-amber-700"
+                }`}
+              >
+                {aggregatedGaps.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("classes")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === "classes"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+              }`}
+            >
+              <School className="h-3.5 w-3.5" />
+              <span>{language === "hi" ? "कक्षाएं" : "Classrooms"}</span>
+              <span
+                className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-mono font-semibold ${
+                  activeTab === "classes" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {classes.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("analytics")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === "analytics"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+              }`}
+            >
+              <BarChart3 className="h-3.5 w-3.5 text-primary" />
+              <span>{language === "hi" ? "एनालिटिक्स" : "Analytics"}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("syncLogs")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === "syncLogs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+              }`}
+            >
+              <Upload className="h-3.5 w-3.5" />
+              <span>{language === "hi" ? "ऑफ़लाइन सिंक" : "Offline Ingest"}</span>
+              <span
+                className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-mono font-semibold ${
+                  activeTab === "syncLogs" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {syncLogs.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("reports")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === "reports"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+              }`}
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              <span>{language === "hi" ? "रिपोर्ट्स" : "Reports"}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("workflow")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === "workflow"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+              }`}
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              <span>{language === "hi" ? "कार्यप्रणाली" : "How It Works"}</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        {/* Unified Executive KPI Row */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        {/* Dedicated Page Breadcrumb Navigation (Shown on non-overview pages) */}
+        {activeTab !== "overview" && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <button
+                onClick={() => setActiveTab("overview")}
+                className="hover:text-primary transition-colors flex items-center gap-1 font-semibold"
+              >
+                <Compass className="h-3.5 w-3.5" />
+                <span>Portal</span>
+              </button>
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+              <span className="font-bold text-foreground capitalize">
+                {activeTab === "students" && (language === "hi" ? "विद्यार्थी एवं जरूरतें" : "Pupils & Learning Needs")}
+                {activeTab === "worksheets" && (language === "hi" ? "अभ्यास पत्रक बैंक" : "Worksheet Bank & Practice Allocation")}
+                {activeTab === "gaps" && (language === "hi" ? "कौशल अंतराल मैट्रिक्स" : "FLN Competency Gaps Matrix")}
+                {activeTab === "interventionCircles" && (language === "hi" ? "सहायता समूह" : "Remedial Support Circles")}
+                {activeTab === "classes" && (language === "hi" ? "कक्षाएं" : "Classrooms & Grade Sections")}
+                {activeTab === "analytics" && (language === "hi" ? "एनालिटिक्स" : "Visual Analytics & Progress")}
+                {activeTab === "syncLogs" && (language === "hi" ? "ऑफ़लाइन सिंक स्टेशन" : "Offline Mobile Ingest Station")}
+                {activeTab === "reports" && (language === "hi" ? "रिपोर्ट्स एवं रजिस्टर" : "Reports & Official Registers")}
+                {activeTab === "workflow" && (language === "hi" ? "कार्यप्रणाली एवं गाइड" : "Operational Workflow & Pedagogy")}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground font-mono bg-muted/60 px-2.5 py-0.5 rounded-full border border-border/60 hidden sm:inline-block">
+                Route: /portal/{TAB_TO_SLUG[activeTab]}
+              </span>
+              <button
+                onClick={() => setActiveTab("overview")}
+                className="text-xs text-primary hover:underline font-semibold flex items-center gap-1"
+              >
+                ← Back to Overview
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 1: OVERVIEW */}
+        {/* ========================================================================= */}
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            {/* Unified Executive KPI Row */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           {/* Card 1: Students */}
           <div
             onClick={() => setActiveTab("students")}
@@ -2744,145 +3020,9 @@ export default function CentralPortal() {
               </span>
             </div>
           </div>
-        </section>
+            </section>
 
-        {/* Enterprise Segmented Tab Navigation */}
-        <div className="flex items-center gap-1 p-1 rounded-2xl bg-muted/50 border border-border/80 overflow-x-auto shadow-2xs backdrop-blur-sm">
-          <button
-            onClick={() => setActiveTab("overview")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-              activeTab === "overview"
-                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-            }`}
-          >
-            <Compass className="h-3.5 w-3.5" />
-            {language === "hi" ? "सिंहावलोकन" : "Overview"}
-          </button>
-          <button
-            onClick={() => setActiveTab("students")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-              activeTab === "students"
-                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-            }`}
-          >
-            <Users className="h-3.5 w-3.5" />
-            {language === "hi" ? "विद्यार्थी एवं जरूरतें" : "Pupils & Needs"}
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono text-muted-foreground font-semibold">
-              {students.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("worksheets")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-              activeTab === "worksheets"
-                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-            }`}
-          >
-            <ClipboardList className="h-3.5 w-3.5" />
-            {language === "hi" ? "अभ्यास पत्रक बैंक" : "Worksheet Bank"}
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono text-muted-foreground font-semibold">
-              {allocatedWorksheets.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("gaps")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-              activeTab === "gaps"
-                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-            }`}
-          >
-            <AlertCircle className="h-3.5 w-3.5 text-rose-500" />
-            {language === "hi" ? "कौशल अंतराल" : "Skill Gaps"}
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-700 font-mono font-bold">
-              {activeGapsCount}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("interventionCircles")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-              activeTab === "interventionCircles"
-                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-            }`}
-          >
-            <Users className="h-3.5 w-3.5 text-amber-500" />
-            {language === "hi" ? "सहायता समूह" : "Support Circles"}
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-amber-50 text-amber-700 font-mono font-bold">
-              {aggregatedGaps.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("classes")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-              activeTab === "classes"
-                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-            }`}
-          >
-            <School className="h-3.5 w-3.5" />
-            {language === "hi" ? "कक्षाएं" : "Classrooms"}
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono text-muted-foreground font-semibold">
-              {classes.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("analytics")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-              activeTab === "analytics"
-                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-            }`}
-          >
-            <BarChart3 className="h-3.5 w-3.5 text-primary" />
-            {language === "hi" ? "एनालिटिक्स" : "Analytics"}
-          </button>
-          <button
-            onClick={() => setActiveTab("syncLogs")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-              activeTab === "syncLogs"
-                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-            }`}
-          >
-            <Upload className="h-3.5 w-3.5" />
-            {language === "hi" ? "ऑफ़लाइन सिंक" : "Offline Ingest"}
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono text-muted-foreground font-semibold">
-              {syncLogs.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("reports")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-              activeTab === "reports"
-                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-            }`}
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-            {language === "hi" ? "रिपोर्ट्स" : "Reports"}
-          </button>
-          <button
-            onClick={() => setActiveTab("workflow")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-              activeTab === "workflow"
-                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-            }`}
-          >
-            <HelpCircle className="h-3.5 w-3.5" />
-            {language === "hi" ? "कार्यप्रणाली" : "How It Works"}
-          </button>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* TAB 1: OVERVIEW */}
-        {/* ========================================================================= */}
-        {activeTab === "overview" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
               {/* Teacher Pipeline Banner */}
               <div className="glass-panel p-6 space-y-5">
@@ -3304,7 +3444,8 @@ export default function CentralPortal() {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* ========================================================================= */}
         {/* TAB 2: INDIVIDUAL STUDENT MANAGEMENT & IMPROVEMENT NEEDS */}

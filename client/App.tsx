@@ -64,20 +64,16 @@ const App = () => (
       <AppProvider>
         <BrowserRouter>
           <Routes>
-            {/* Primary Central Web Portal Dashboard (Default for Web App & Vercel Root) */}
+            {/* Primary Central Web Portal Multi-Page Routes */}
             <Route path="/" element={<CentralPortal />} />
             <Route path="/portal" element={<CentralPortal />} />
+            <Route path="/portal/:tab" element={<CentralPortal />} />
+            <Route path="/portal/:tab/:subId" element={<CentralPortal />} />
             <Route path="/dashboard" element={<CentralPortal />} />
             <Route path="/analytics" element={<CentralPortal />} />
             <Route path="/admin" element={<CentralPortal />} />
             <Route path="/reports" element={<CentralPortal />} />
             <Route path="/roster" element={<CentralPortal />} />
-
-            {/* Teacher Mobile App Experience */}
-            <Route path="/mobile/*" element={<MobileAppRoutes />} />
-            <Route path="/mobile" element={<MobileAppRoutes />} />
-            <Route path="/app/*" element={<MobileAppRoutes />} />
-            <Route path="/app" element={<MobileAppRoutes />} />
 
             {/* Direct Setup route */}
             <Route path="/setup" element={<Setup />} />
