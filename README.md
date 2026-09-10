@@ -1,129 +1,145 @@
-# SAH-PS-2 — Implementation Status & Architecture Assessment
+# Sahayak (SAH-PS-2) — Offline-First Foundational Literacy & Numeracy Platform
 
-## Architecture Assessment
-
-- **Product**: Sahayak (SAH-PS-2) — Teacher-first, offline-first foundational reading & numeracy assessment platform for Classes 1–3.
-- **Frontend Stack**: React 18 + TypeScript + Vite + TailwindCSS + Lucide Icons + React Router.
-- **Local Persistence**: Client-side storage (IndexedDB / LocalStorage) with optional Web Crypto encryption for zero-network operation.
-- **Diagnostic Philosophy**: Deterministic rule-based diagnosis of observable educational skill gaps (no opaque clinical ML, no mark-based competitive ranking).
-- **Practice Architecture**: Tagged pre-built worksheet templates matched to skill gaps with tiered progression (Tier 1 → Tier 2 → Tier 3).
-- **Privacy & Sync**: Anonymized aggregated gap metrics transmitted to the reporting server when connectivity is available; zero student PII leaves the local device.
+> **A teacher-first, offline-first educational diagnostic and practice platform for Classes 1–3, aligned with NIPUN Bharat competencies.**
 
 ---
 
-## Core Feature Checklist
+## 🌟 Architecture & Highlights
 
-- [x] **1. Project Foundation & Architecture Shell**
-  - Teacher-first mobile-optimized interface with bottom navigation.
-  - Offline status indicator and multilingual support (English & Hindi).
-  - Production-ready Vite build and TypeScript target ES2022.
-
-- [x] **2. Student Records & Profiles**
-  - Add, edit, view, and remove student profiles (Roll No, Grade, Name, Avatar Tint).
-  - Chronological learning gap history and assessment timeline.
-  - Quick action assessment triggers from profile.
-
-- [x] **3. Foundational Reading Assessment**
-  - Teacher-guided reading prompts covering letter, sound, word decoding, and passage reading.
-  - Token-level mistake recording (wrong, skipped, hesitation).
-  - Optional assistive Web Speech API integration.
-
-- [x] **4. Foundational Numeracy Assessment**
-  - Number recognition, counting sequences, missing numbers, and transitions.
-  - Concrete step-by-step observable competency checks.
-
-- [x] **5. Learning Gap Engine**
-  - Extensible competency registry across reading and numeracy.
-  - Rule-based diagnosis based on observed error patterns.
-  - Gap lifecycle management: `NEW` → `ACTIVE` → `IMPROVING` → `RESOLVED`.
-
-- [x] **6. Targeted Practice Worksheet Bank**
-  - Curated worksheet template bank mapped to competency gap types.
-  - Automatic tier-based worksheet generation upon gap detection.
-  - Clean printable worksheets for offline classroom practice.
-
-- [x] **7. Reassessment Workflow**
-  - Direct reassessment link for active learning gaps.
-  - Historical comparison and resolution state tracking.
-  - Escalation to higher drill tiers if difficulty persists.
-
-- [x] **8. Class-Level Gap Aggregation**
-  - Aggregation of common learning gaps across the cohort.
-  - Gap wall prioritizing persistent gaps over newly noticed ones.
-  - Zero competitive student ranking or leaderboards.
-
-- [x] **9. Small-Group Interventions**
-  - Automatic suggested grouping based on shared skill gaps.
-  - Group size limits and clear pedagogical focus.
-
-- [x] **10. Assessment Rotation**
-  - Daily rotation queue calculating students-per-day targets.
-  - School days countdown and rotation completion tracking.
-
-- [x] **11. Offline-First Operation & Storage**
-  - Fully functional offline CRUD via browser storage.
-  - Service worker caching shell for progressive web app behavior.
-
-- [x] **12. Privacy & Anonymized Sync**
-  - Client-side data minimization.
-  - Anonymized aggregate payload queue for sync without individual student identities.
-  - Server endpoints receiving aggregate cohort reports.
-
-- [x] **13. Verification & Automated Tests**
-  - Vitest test suite covering rotation, diagnosis, worksheet bank, and class overview.
-  - Clean TypeScript compilation with 0 errors.
-
-
-> **Offline-First Smart Education Platform for Foundational Reading & Numeracy Assessment in Classes 1–3.**
+Sahayak transforms early-grade assessment from stressful, high-stakes testing into continuous, actionable learning support:
+- **Teacher-First Mobile App**: Designed for classroom tablets and smartphones with touch-friendly controls, quick oral and numeracy assessment checklists, daily rotation queues, and printable tiered worksheets.
+- **Multi-Page Central Web Portal**: Dedicated routes (`/dashboard`, `/roster`, `/analytics`, `/admin`, `/reports`) for headmasters and block education officers to monitor cohort competency gaps, review sync logs, and batch-download practice sheets.
+- **Offline-First Resilience**: All core classroom features run with **zero internet connection**. Assessment logs and student records are persisted locally in IndexedDB wrapped in client-side AES-GCM encryption.
+- **Multi-Teacher Workspaces & Quick Switch**: Dedicated teacher login and authentication with 1-click demo teacher switching between classrooms (**Prerna Sharma** & **Rajesh Verma**) to demonstrate multi-teacher multi-classroom workflows.
+- **Bi-Directional Real Data Sync**: Export encrypted offline sync bundles as JSON, import locally into the central portal with full entity merging, or sync automatically when an internet connection becomes available.
 
 ---
 
-## Project Summary
+## 🛠️ Complete Tech Stack
 
-SAH-PS-2 is a teacher-focused educational platform designed to assess foundational reading and numeracy skills in students from Classes 1–3.
-
-Instead of focusing primarily on marks or scores, the platform identifies **specific learning gaps**, provides targeted practice material, and tracks student progress through reassessment.
-
-The application is designed around an **offline-first architecture**, allowing teachers to continue using the core assessment and learning-support features even when internet connectivity is unavailable.
-
-The platform combines:
-
-- **Foundational Reading Assessment**: Short teacher-guided assessments for early reading skills, including words, sounds, passages, and response patterns.
-- **Foundational Numeracy Assessment**: Structured activities for number recognition, sequences, transitions, and other early numeracy competencies.
-- **Specific Learning-Gap Diagnosis**: Converts assessment observations into actionable learning gaps rather than relying only on numerical scores.
-- **Individual Student Records**: Persistent student profiles containing assessment history, identified gaps, practice activities, and reassessment outcomes.
-- **Individualized Practice Worksheets**: Selects targeted worksheets from a pre-built, tagged template bank based on the student's diagnosed gap.
-- **Class-Level Gap Aggregation**: Groups common learning gaps across students and suggests small-group intervention priorities without displaying student rankings.
-- **Assessment Rotation**: Helps teachers distribute assessments across the class through a manageable daily rotation.
-- **Reassessment Tracking**: Allows teachers to reassess previously identified gaps and track whether they have been resolved.
-- **Offline-First Operation**: Core classroom functionality remains available without an active internet connection.
-- **Anonymized Aggregate Synchronization**: When connectivity is available, aggregate learning-gap information can be synchronized for broader educational reporting without requiring individual student identity.
+| Layer | Technologies | Purpose |
+|---|---|---|
+| **Frontend Framework** | React 18, TypeScript, Vite 8 | Reactive, type-safe single-page application with lightning-fast HMR and production bundle optimization. |
+| **Routing & Navigation** | React Router 6 | Multi-page routing supporting clean deep URLs (`/mobile`, `/dashboard`, `/roster`, `/analytics`, `/admin`, `/reports`, `/mobile/login`). |
+| **Styling & Design System** | Tailwind CSS, Radix UI primitives, Lucide Icons | Responsive mobile-first and desktop portal layouts with accessible contrast, custom badge pills, and dark/light themes. |
+| **Client Storage & Vault** | IndexedDB (`idb-keyval`), Web Crypto API (SubtleCrypto AES-GCM) | Local-first persistence ensuring zero data loss offline, encrypting student records before writing to disk. |
+| **Document Generation** | JSZip, HTML5 Print Stylesheets | In-browser dynamic HTML worksheet rendering with CSS print media formatting and multi-sheet ZIP archive compilation. |
+| **Backend & API Server** | Node.js, Express 5, TypeScript | Lightweight RESTful microservices for teacher authentication, classroom session issuance, and sync queue processing. |
+| **Cloud Database Mirroring** | Supabase (PostgreSQL) with in-memory resilient fallback | Cloud sync ingestion for aggregate educational metrics with automatic offline failover when cloud database is unreachable. |
+| **Testing & Quality** | Vitest, TypeScript Compiler (`tsc --noEmit`) | Rigorous test coverage across rotation algorithms, competency diagnosis, worksheet banks, sync conflict resolution, and authentication. |
 
 ---
 
-## Problem Statement
+## 📱 Mobile App Capabilities
 
-Foundational literacy and numeracy are critical during the early years of education. However, conventional assessments often provide a score without clearly identifying the underlying skill gap.
+1. **Teacher Login & Switch Teacher**:
+   - Secure teacher login ID and password authentication (`teacher123`).
+   - 1-Click quick login for demo teachers:
+     - **Prerna Sharma** (GPS-104 Primary Section, Classes 1–3)
+     - **Rajesh Verma** (Bal Vidyalaya Section B, Class 2)
+   - Real-time **Switch Teacher** feature accessible directly from the mobile top navigation header and home screen banner.
+2. **Foundational Reading Assessment**:
+   - Letter sound recognition, word decoding, passage comprehension.
+   - Token-level error marking (wrong, hesitation, skipped) with optional Web Speech assistance.
+3. **Foundational Numeracy Assessment**:
+   - Number recognition (1–9, 10–99), counting sequences, missing number grids, and decade transitions.
+4. **Learning Gap Diagnostic Engine**:
+   - Rule-based, deterministic mapping of student observations to specific NIPUN Bharat competency gaps.
+   - Automatic tier assignment (Tier 1 Foundational → Tier 2 Guided Practice → Tier 3 Independent Mastery).
+5. **Classroom Rotation Queue**:
+   - Automatically calculates daily assessment quotas (e.g. 5 students/day) to complete full class rounds every 14 days without teacher burnout.
+6. **Practice Worksheets**:
+   - Tiered printable practice worksheets generated instantly when a learning gap is identified.
 
-A teacher may know that a student is struggling, but still need answers to questions such as:
+---
 
-- Which specific foundational skill is causing the difficulty?
-- What should the student practice next?
-- Is the same gap affecting multiple students?
-- Has a previously identified gap been resolved?
-- Which students could benefit from a small-group intervention?
+## 🖥️ Central Web Portal Capabilities
 
-SAH-PS-2 addresses this by transforming classroom assessment into a continuous learning-support cycle:
+1. **Executive Dashboard (`/dashboard`)**:
+   - Cohort FLN health score, active gap distribution, total enrolled students, and sync status telemetry.
+2. **Roster Management (`/roster`)**:
+   - Real-time student roster editor with class filters, grade filters, roll numbers, and avatar color accents.
+3. **Competency Analytics (`/analytics`)**:
+   - Graphical visualizations of learning gaps across reading and numeracy competencies with tier breakdowns.
+4. **Worksheet Bank & Batch ZIP Download**:
+   - Live worksheet bank with multi-attribute filtering (Subject, Grade 1–3, Tier 1–3).
+   - Batch selection and 1-Click **Download Selected as ZIP** compiling full class sets of printable HTML worksheets into a single compressed `.zip` bundle.
+5. **Sync Audit Logs (`/admin`)**:
+   - Real-time tracking of sync operations, device IDs, conflicting updates, and batch ingest records.
+
+---
+
+## 🔄 Offline Synchronization Flow
 
 ```text
-Assessment
-    ↓
-Specific Gap Diagnosis
-    ↓
-Targeted Practice
-    ↓
-Reassessment
-    ↓
-Progress Tracking
-    ↓
-Class-Level Intervention
+[Teacher Mobile App (Offline)]
+      │
+      ├─ 1. Conducts assessments & diagnoses gaps
+      ├─ 2. Stores in AES-GCM encrypted local IndexedDB
+      ├─ 3. Generates Offline Sync Bundle (JSON)
+      │
+      ▼
+[Network Available / USB Transfer]
+      │
+      ├─ 4. POST /api/sync/pull (Online automatic sync)
+      │     OR Import Offline Bundle JSON in Portal
+      │
+      ▼
+[Central Store / Supabase Postgres]
+      │
+      ├─ 5. Reconciles versions & updates records
+      ├─ 6. Updates portal KPI analytics & roster in real time
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm or pnpm
+
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/shishi-88/SAH_PS_2.git
+cd SAH_PS_2
+
+# Install dependencies
+npm install
+```
+
+### Running in Development
+```bash
+# Start Vite dev server on port 8082
+npx vite --port 8082
+```
+- Open [http://localhost:8082](http://localhost:8082) for the **Central Web Portal**.
+- Open [http://localhost:8082/mobile](http://localhost:8082/mobile) for the **Teacher Mobile App**.
+- Open [http://localhost:8082/mobile/login](http://localhost:8082/mobile/login) for the **Teacher Login & Switch Screen**.
+
+### Demo Credentials
+- **Password for all teachers**: `teacher123`
+- **Teacher 1**: `Prerna Sharma` (GPS-104 Primary School)
+- **Teacher 2**: `Rajesh Verma` (Bal Vidyalaya Section B)
+- **Portal Admin**: `admin` / `admin123`
+
+### Running Automated Tests
+```bash
+# Run Vitest test suite
+npm test
+
+# Type-check TypeScript codebase
+npx tsc --noEmit
+```
+
+### Production Build
+```bash
+# Build production client and server bundles
+npm run build
+```
+
+---
+
+## 📄 License
+Aligned with public education guidelines under the NIPUN Bharat Mission. All rights reserved.

@@ -42,7 +42,7 @@ class CentralStore {
   public sessions = new Map<string, TeacherSessionRecord>();
 
   constructor() {
-    // Seed default teacher
+    // Seed default teacher 1
     const defaultTeacher: TeacherEntity = {
       id: "tea_demo",
       name: "Prerna Sharma",
@@ -54,6 +54,19 @@ class CentralStore {
       updatedAt: new Date().toISOString(),
     };
     this.teachers.set(defaultTeacher.id, defaultTeacher);
+
+    // Seed default teacher 2 (for quick switch demonstrations)
+    const teacher2: TeacherEntity = {
+      id: "tea_rajesh",
+      name: "Rajesh Verma",
+      email: "rajesh.verma@balvidyalaya.edu.in",
+      password: "teacher123",
+      schoolId: "BV-202",
+      schoolName: "Bal Vidyalaya Section B",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.teachers.set(teacher2.id, teacher2);
 
     // Seed initial demo data (classes, students, gaps)
     this.seedDemoData();

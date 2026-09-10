@@ -115,6 +115,7 @@ export type WorksheetStatus = "assigned" | "practiced";
 
 export interface WorksheetItem {
   prompt: string;
+  promptHi?: string;
   hint?: string;
   /** Activity type used by the worksheet preview to pick a layout. */
   kind?: WorksheetItemKind;

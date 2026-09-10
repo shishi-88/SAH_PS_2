@@ -77,11 +77,11 @@ export default function Setup() {
     }
   };
 
-  const handleDemoLogin = async () => {
-    setTeacherName("Prerna Sharma");
+  const handleQuickTeacherLogin = async (teacher: string, school: string) => {
+    setTeacherName(teacher);
     setPassword("teacher123");
-    setSchoolName("GPS-104 Primary School");
-    await handleLogin("Prerna Sharma", "teacher123", "GPS-104 Primary School");
+    setSchoolName(school);
+    await handleLogin(teacher, "teacher123", school);
   };
 
   return (
@@ -122,27 +122,67 @@ export default function Setup() {
             </div>
           </div>
 
-          {/* Quick Demo Login Option */}
-          <div className="rounded-2xl border border-primary/25 bg-primary/5 p-3.5 flex items-center justify-between gap-3">
-            <div className="space-y-0.5">
-              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+          {/* Quick Demo Logins for Switch Teacher Demo */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between text-xs font-bold text-foreground">
+              <span className="flex items-center gap-1.5 text-primary">
                 <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                {t(language, "setup.demoLogin")}
+                {language === "hi" ? "त्वरित शिक्षक 1-क्लिक लॉगिन (स्विच डेमो)" : "2 Teacher Quick Logins (Switch Demo)"}
               </span>
-              <p className="text-[11px] text-muted-foreground">
-                Prerna Sharma · GPS-104 (FLN Primary)
-              </p>
+              <span className="text-[10px] text-muted-foreground font-normal">
+                {language === "hi" ? "स्विच शिक्षक का परीक्षण" : "Password: teacher123"}
+              </span>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleDemoLogin}
-              disabled={busy}
-              className="h-8 rounded-full text-xs font-semibold px-3 bg-card hover:bg-primary hover:text-primary-foreground border-primary/30 shrink-0"
-            >
-              1-Click Login
-            </Button>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Teacher 1: Prerna Sharma */}
+              <div className="rounded-2xl border border-primary/25 bg-primary/5 p-3 flex flex-col justify-between gap-2.5 hover:border-primary/40 transition-colors">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                      P
+                    </span>
+                    <span className="text-xs font-bold text-foreground">Prerna Sharma</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground pl-6.5">
+                    GPS-104 · Primary Section
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleQuickTeacherLogin("Prerna Sharma", "GPS-104 Primary School")}
+                  disabled={busy}
+                  className="h-7 w-full rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs"
+                >
+                  {language === "hi" ? "प्रेरणा लॉगिन" : "Login as Prerna"}
+                </Button>
+              </div>
+
+              {/* Teacher 2: Rajesh Verma */}
+              <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/20 p-3 flex flex-col justify-between gap-2.5 hover:border-indigo-400 transition-colors">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
+                      R
+                    </span>
+                    <span className="text-xs font-bold text-foreground">Rajesh Verma</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground pl-6.5">
+                    Bal Vidyalaya · Class 2
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleQuickTeacherLogin("Rajesh Verma", "Bal Vidyalaya Section B")}
+                  disabled={busy}
+                  className="h-7 w-full rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 shadow-2xs"
+                >
+                  {language === "hi" ? "राजेश लॉगिन" : "Login as Rajesh"}
+                </Button>
+              </div>
+            </div>
           </div>
 
           {errorMessage && (

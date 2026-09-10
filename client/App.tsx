@@ -72,6 +72,8 @@ const App = () => (
             {/* Direct Setup / Login routes */}
             <Route path="/setup" element={<Setup />} />
             <Route path="/login" element={<Setup />} />
+            <Route path="/mobile/login" element={<Setup />} />
+            <Route path="/mobile/setup" element={<Setup />} />
 
             {/* Teacher Mobile App Experience (with Session Gate & Child Routing) */}
             <Route element={<MobileLayout />}>

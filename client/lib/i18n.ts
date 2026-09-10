@@ -23,6 +23,9 @@ const STRINGS = {
     hi: "ऑफ़लाइन चलता है · इस फ़ोन पर सुरक्षित",
   },
   "header.language": { en: "Language", hi: "भाषा" },
+  "header.switchTeacher": { en: "Switch Teacher", hi: "शिक्षक बदलें" },
+  "header.logout": { en: "Log Out", hi: "लॉग आउट" },
+  "header.activeTeacher": { en: "Teacher", hi: "शिक्षक" },
 
   /* Teacher login & session setup */
   "setup.loading": { en: "Opening…", hi: "खुल रहा है…" },

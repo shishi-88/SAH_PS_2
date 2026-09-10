@@ -1,6 +1,8 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
+  ArrowLeftRight,
+  UserCheck,
   CalendarCheck2,
   ClipboardList,
   Mic,
@@ -8,6 +10,7 @@ import {
   RefreshCw,
   Users2,
   Bell,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +29,8 @@ import { localizedGapType, t } from "@/lib/i18n";
 import type { Student } from "@/domain/types";
 
 export default function Index() {
-  const { ready, error, snapshot, language } = useApp();
+  const navigate = useNavigate();
+  const { ready, error, snapshot, language, session, switchTeacher, completeSetup } = useApp();
   if (!ready) return <p className="py-16 text-center text-muted-foreground">{t(language, "home.opening")}</p>;
   if (error) return <p className="py-16 text-center text-destructive">{error}</p>;
 
@@ -56,14 +60,82 @@ export default function Index() {
 
   return (
     <div className="space-y-7">
-      <section className="space-y-1">
-        <p className="text-sm font-medium text-muted-foreground">
-          {classroom.schoolName ? `${classroom.schoolName} · ` : ""}
-          {classroom.teacherLabel}
-        </p>
-        <h1 className="font-heading text-[28px] font-bold leading-tight text-foreground sm:text-3xl">
-          {classroom.name}
-        </h1>
+      <section className="rounded-3xl border border-border/80 bg-gradient-to-r from-card via-card to-primary/5 p-4 sm:p-5 shadow-xs space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20">
+                <UserCheck className="h-3.5 w-3.5" />
+                <span>{session?.teacherName || classroom.teacherLabel || "Teacher"}</span>
+              </span>
+              {classroom.schoolName && (
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  · {classroom.schoolName}
+                </span>
+              )}
+            </div>
+            <h1 className="font-heading text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+              {classroom.name}
+            </h1>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              await switchTeacher();
+              navigate("/mobile/login");
+            }}
+            className="rounded-2xl border-border bg-card hover:bg-muted text-xs font-semibold gap-1.5 shrink-0 shadow-2xs h-9 px-3"
+            title={t(language, "header.switchTeacher")}
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />
+            <span>{t(language, "header.switchTeacher")}</span>
+          </Button>
+        </div>
+
+        {/* 1-Click Teacher Switch Demo Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border/60 text-xs">
+          <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium">
+            <Sparkles className="h-3 w-3 text-amber-500" />
+            {language === "hi" ? "त्वरित शिक्षक स्विच डेमो:" : "Quick Switch Demo:"}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={async () => {
+                await completeSetup({
+                  teacherName: "Prerna Sharma",
+                  password: "teacher123",
+                  schoolName: "GPS-104 Primary School",
+                });
+              }}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all border ${
+                (session?.teacherName || classroom.teacherLabel)?.toLowerCase().includes("prerna")
+                  ? "bg-primary text-primary-foreground border-primary shadow-2xs"
+                  : "bg-card text-foreground hover:bg-muted border-border"
+              }`}
+            >
+              👩‍🏫 Prerna Sharma (GPS-104)
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await completeSetup({
+                  teacherName: "Rajesh Verma",
+                  password: "teacher123",
+                  schoolName: "Bal Vidyalaya Section B",
+                });
+              }}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all border ${
+                (session?.teacherName || classroom.teacherLabel)?.toLowerCase().includes("rajesh")
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                  : "bg-card text-foreground hover:bg-muted border-border"
+              }`}
+            >
+              👨‍🏫 Rajesh Verma (Bal Vidyalaya)
+            </button>
+          </div>
+        </div>
       </section>
 
       <Link

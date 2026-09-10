@@ -2634,7 +2634,7 @@ export default function CentralPortal() {
         operationId: `op_import_${Date.now()}`,
         entityType: "student",
         entityId: `batch_${data.students.length}_records`,
-        operation: "SYNC",
+        operation: "UPDATE",
         clientId: sourceName,
         status: "SYNCED",
         clientVersion: 1,
@@ -2738,6 +2738,14 @@ export default function CentralPortal() {
                 <Smartphone className="h-3.5 w-3.5 text-primary" />
                 <span>{language === "hi" ? "शिक्षक मोबाइल ऐप" : "Teacher Mobile App"}</span>
                 <ExternalLink className="h-3 w-3 opacity-60" />
+              </Link>
+              <Link
+                to="/mobile/login"
+                className="inline-flex items-center gap-1 rounded-full bg-secondary hover:bg-secondary/80 text-foreground border border-border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-all"
+                title="Teacher Mobile Login"
+              >
+                <UserCheck className="h-3.5 w-3.5 text-primary" />
+                <span>{language === "hi" ? "लॉगिन" : "Teacher Login"}</span>
               </Link>
             </div>
           </div>
@@ -3021,14 +3029,23 @@ export default function CentralPortal() {
             </Button>
 
             {/* Teacher App Link */}
-            <Link
-              to="/mobile"
-              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-500 text-white px-4 py-2 text-xs font-semibold shadow-xs hover:shadow-sm transition-all"
-            >
-              <Smartphone className="h-3.5 w-3.5" />
-              <span>{language === "hi" ? "शिक्षक मोबाइल ऐप" : "Teacher Mobile App"}</span>
-              <ExternalLink className="h-3 w-3 ml-0.5 opacity-80" />
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <Link
+                to="/mobile"
+                className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-500 text-white px-3.5 py-1.5 text-xs font-semibold shadow-xs hover:shadow-sm transition-all"
+              >
+                <Smartphone className="h-3.5 w-3.5" />
+                <span>{language === "hi" ? "शिक्षक मोबाइल ऐप" : "Teacher Mobile App"}</span>
+              </Link>
+              <Link
+                to="/mobile/login"
+                className="inline-flex items-center gap-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground border border-border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-all"
+                title="Teacher Mobile Login / Switch"
+              >
+                <UserCheck className="h-3.5 w-3.5 text-primary" />
+                <span className="hidden sm:inline">{language === "hi" ? "मोबाइल लॉगिन" : "Teacher Login"}</span>
+              </Link>
+            </div>
 
             {/* User Session Badge & Sign Out */}
             <div className="flex items-center gap-1.5 pl-2 border-l border-border/70">
@@ -5595,7 +5612,7 @@ export default function CentralPortal() {
                                               : "bg-amber-50 text-amber-800 border border-amber-200"
                                           }`}
                                         >
-                                          {getGapType(g.gapTypeId)?.name || g.gapTypeId} (T{g.currentTier})
+                                          {getGapType(g.gapTypeId)?.label || g.gapTypeId} (T{g.currentTier})
                                         </span>
                                       ))}
                                     </div>

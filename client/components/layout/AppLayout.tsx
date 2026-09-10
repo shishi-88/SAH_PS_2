@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   BookOpen,
   House,
@@ -7,6 +7,7 @@ import {
   Mic,
   Users,
   LayoutDashboard,
+  ArrowLeftRight,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -55,21 +56,51 @@ function LangButton({
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { language, setLanguage } = useApp();
+  const navigate = useNavigate();
+  const { language, setLanguage, session, snapshot, switchTeacher } = useApp();
   const printHide = location.pathname.startsWith("/worksheets/");
+
+  const teacherName = session?.teacherName || snapshot.classroom.teacherLabel || "Teacher";
+
+  const handleSwitchTeacher = async () => {
+    await switchTeacher();
+    navigate("/mobile/login");
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className={cn("sticky top-0 z-30 border-b border-border bg-background", printHide && "print:hidden")}>
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3.5 sm:px-6">
-          <Link to="/mobile" className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-              <BookOpen className="h-5 w-5" strokeWidth={2.2} />
-            </span>
-            <span className="font-heading text-xl font-bold tracking-wide text-foreground">
-              Sahayak
-            </span>
-          </Link>
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-3.5 py-3 sm:px-6">
+          <div className="flex items-center gap-2.5">
+            <Link to="/mobile" className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+                <BookOpen className="h-5 w-5" strokeWidth={2.2} />
+              </span>
+              <span className="font-heading text-lg sm:text-xl font-bold tracking-wide text-foreground">
+                Sahayak
+              </span>
+            </Link>
+
+            {/* Active Teacher Badge + Switch Trigger */}
+            <div className="flex items-center gap-1 rounded-full border border-border/80 bg-card py-1 pl-1.5 pr-2 shadow-2xs">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+                {teacherName.charAt(0).toUpperCase()}
+              </span>
+              <span className="text-xs font-semibold text-foreground max-w-[70px] sm:max-w-[120px] truncate" title={teacherName}>
+                {teacherName}
+              </span>
+              <button
+                type="button"
+                onClick={handleSwitchTeacher}
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/10 transition-colors ml-0.5"
+                title={t(language, "header.switchTeacher")}
+              >
+                <ArrowLeftRight className="h-3 w-3" />
+                <span className="hidden sm:inline">{t(language, "header.switchTeacher")}</span>
+              </button>
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
             <Link
               to="/"
@@ -78,9 +109,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <LayoutDashboard className="h-3.5 w-3.5" />
               <span>{language === "hi" ? "वेब पोर्टल" : "Web Portal"}</span>
             </Link>
-            <span className="hidden rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground sm:inline">
-              {t(language, "header.offline")}
-            </span>
             <div
               role="group"
               aria-label={t(language, "header.language")}
