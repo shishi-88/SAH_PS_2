@@ -715,6 +715,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
         let ok = true;
         let message = t(language, "sync.flushOk");
 
+        // 0. Ensure an active backend session token
+        let token = session?.sessionToken;
+        if (!token || token.startsWith("local_")) {
+          try {
+            const deviceId = getOrCreateDeviceId();
+            const authRes = await fetch("/api/auth/setup", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                deviceId,
+                teacherName: session?.teacherName || snapshot.classroom.teacherLabel || "Prerna Sharma",
+                schoolName: session?.schoolName || snapshot.classroom.schoolName,
+                classroomName: snapshot.classroom.name,
+              }),
+            });
+            if (authRes.ok) {
+              const d = await authRes.json();
+              if (d?.data?.sessionToken) {
+                token = d.data.sessionToken;
+                const nextSession: TeacherSession = {
+                  ...(session || {
+                    deviceId,
+                    teacherId: d.data.teacher.id,
+                    classroomId: d.data.classroom.id,
+                    teacherName: d.data.teacher.name,
+                    classroomName: d.data.classroom.name,
+                    establishedAt: new Date().toISOString(),
+                  }),
+                  sessionToken: token,
+                  establishedOnline: true,
+                };
+                setSession(nextSession);
+                await saveSession(nextSession);
+              }
+            }
+          } catch (e) {
+            console.warn("Could not elevate local session to online:", e);
+          }
+        }
+
+        const authHeaders: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          authHeaders["Authorization"] = `Bearer ${token}`;
+        }
+
         // 1. Build and transmit full entity batch to /api/sync (Database & Supabase)
         try {
           const operations: any[] = [];
@@ -728,7 +775,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               operation: "UPDATE",
               payload: {
                 id: snapshot.classroom.id,
-                teacherId: "tea_primary",
+                teacherId: session?.teacherId || "tea_demo",
                 name: snapshot.classroom.name,
                 gradeBand: "Grade 1-3",
                 studentsPerDay: snapshot.classroom.studentsPerDay,
@@ -838,23 +885,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
 
           if (operations.length > 0) {
-            await fetch("/api/sync", {
+            const syncRes = await fetch("/api/sync", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: authHeaders,
               body: JSON.stringify({
-                clientId: "mobile_teacher_device",
+                clientId: session?.deviceId || "mobile_teacher_device",
                 operations,
               }),
             });
+            if (!syncRes.ok) {
+              console.warn("Batch sync response status:", syncRes.status);
+            }
           }
         } catch (e) {
           console.warn("Batch sync to /api/sync failed:", e);
         }
 
-        // 2. Fetch central records from /api/students to merge new web additions
+        // 2. Fetch central records from /api/students to merge any new web additions
         let updatedStudents = [...snapshot.students];
         try {
-          const res = await fetch("/api/students");
+          const res = await fetch("/api/students", {
+            headers: authHeaders,
+          });
           if (res.ok) {
             const data = await res.json();
             const remoteStudents: any[] = data.data || [];
@@ -872,6 +924,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     createdAt: rs.createdAt || new Date().toISOString(),
                     lastAssessedAt: rs.lastAssessedAt || null,
                   });
+                } else {
+                  if (rs.lastAssessedAt && (!updatedStudents[idx].lastAssessedAt || rs.lastAssessedAt > updatedStudents[idx].lastAssessedAt!)) {
+                    updatedStudents[idx] = {
+                      ...updatedStudents[idx],
+                      lastAssessedAt: rs.lastAssessedAt,
+                    };
+                  }
                 }
               }
             }
@@ -880,7 +939,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
           console.warn("Failed to pull remote students:", e);
         }
 
-        // 3. Process any pending queue items (such as aggregated gap reports)
+        // 3. Keep shared localStorage in sync so portal immediately reflects updates
+        try {
+          localStorage.setItem("sahayak_portal_students", JSON.stringify(updatedStudents));
+          localStorage.setItem("sahayak_portal_gaps", JSON.stringify(snapshot.gaps));
+          localStorage.setItem("sahayak_portal_worksheets", JSON.stringify(snapshot.worksheets));
+          localStorage.setItem(
+            "sahayak_portal_classes",
+            JSON.stringify([
+              {
+                id: snapshot.classroom.id,
+                teacherId: session?.teacherId || "tea_demo",
+                name: snapshot.classroom.name,
+                gradeBand: "Class 1–3 Primary Section",
+                studentsPerDay: snapshot.classroom.studentsPerDay,
+                reassessmentDays: snapshot.classroom.reassessmentDays,
+                version: 1,
+                createdAt: snapshot.classroom.createdAt,
+                updatedAt: new Date().toISOString(),
+              },
+            ])
+          );
+        } catch {}
+
+        // 4. Process any pending queue items (such as aggregated gap reports)
         const pending = snapshot.syncQueue.filter((i) => i.status !== "synced");
         if (!pending.length) {
           const payload = toAggregatedReport(updatedStudents, snapshot.gaps);
@@ -899,7 +981,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           try {
             const res = await fetch("/api/reports/gaps", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: authHeaders,
               body: JSON.stringify(item.payload),
             });
             if (!res.ok) throw new Error(`Server returned ${res.status}`);

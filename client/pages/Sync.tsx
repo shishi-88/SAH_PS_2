@@ -12,6 +12,7 @@ import {
   Settings2,
   ShieldCheck,
   Users,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,8 +54,10 @@ export default function Sync() {
     .sort()
     .pop();
 
-  const handleExportOfflineData = () => {
-    const pkg = {
+  const [copied, setCopied] = useState(false);
+
+  const getOfflinePackage = () => {
+    return {
       format: "sahayak-offline-bundle",
       version: 1,
       exportedAt: new Date().toISOString(),
@@ -76,6 +79,10 @@ export default function Sync() {
       worksheets: snapshot.worksheets,
       syncQueue: snapshot.syncQueue,
     };
+  };
+
+  const handleExportOfflineData = () => {
+    const pkg = getOfflinePackage();
     const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -85,6 +92,17 @@ export default function Sync() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleCopyOfflineJson = async () => {
+    const pkg = getOfflinePackage();
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(pkg, null, 2));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      handleExportOfflineData();
+    }
   };
 
   return (
@@ -133,14 +151,36 @@ export default function Sync() {
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          className="w-full rounded-full gap-2 border-border"
-          onClick={handleExportOfflineData}
-        >
-          <Download className="h-4 w-4" />
-          {language === "hi" ? "ऑफ़लाइन पैकेज डाउनलोड करें (.json)" : "Download Offline Package (.json)"}
-        </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            className="w-full rounded-full gap-2 border-border font-semibold text-xs"
+            onClick={handleExportOfflineData}
+          >
+            <Download className="h-4 w-4" />
+            {language === "hi" ? "डाउनलोड फ़ाइल (.json)" : "Download File (.json)"}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full rounded-full gap-2 border-border bg-muted/40 hover:bg-muted font-semibold text-xs transition-all"
+            onClick={handleCopyOfflineJson}
+          >
+            {copied ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span className="text-emerald-700 font-bold">
+                  {language === "hi" ? "क्लिपबोर्ड पर कॉपी हो गया!" : "Copied to Clipboard!"}
+                </span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4 text-primary" />
+                <span>{language === "hi" ? "JSON डेटा कॉपी करें" : "Copy JSON Data"}</span>
+              </>
+            )}
+          </Button>
+        </div>
       </section>
 
       <section className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-soft">

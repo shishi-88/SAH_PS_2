@@ -91,7 +91,7 @@ import {
   nextTier,
 } from "@/domain/worksheet-bank";
 import { useApp } from "@/state/AppProvider";
-import { loadSnapshot } from "@/data/storage";
+import { loadSnapshot, saveSnapshot } from "@/data/storage";
 import type {
   AvatarTint,
   Grade,
@@ -758,6 +758,7 @@ export default function CentralPortal() {
     classes: ClassEntity[];
     students: StudentEntity[];
     learningGaps: LearningGapEntity[];
+    assessments?: AssessmentEntity[];
     worksheets: WorksheetInstance[];
   } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -2291,6 +2292,26 @@ export default function CentralPortal() {
       updatedAt: g.updatedAt || new Date().toISOString(),
     }));
 
+    const rawAssessments = Array.isArray(raw.assessments) ? raw.assessments : [];
+    const importedAssessments: AssessmentEntity[] = rawAssessments.map((a: any, idx: number) => ({
+      id: a.id || `asm_import_${Date.now()}_${idx}`,
+      studentId: a.studentId,
+      classId: a.classId || primaryClassId,
+      subject: a.subject === "numeracy" ? "numeracy" : "reading",
+      grade: (a.grade === 2 || a.grade === 3 ? a.grade : 1) as 1 | 2 | 3,
+      promptId: a.promptId || "general",
+      kind: a.kind || "initial",
+      relatedGapId: a.relatedGapId,
+      detectedGapTypeIds: Array.isArray(a.detectedGapTypeIds) ? a.detectedGapTypeIds : [],
+      evidence: a.evidence || {},
+      analysisSource: a.analysisSource || "teacher-assisted",
+      summary: a.summary || "Offline assessment observation",
+      version: a.version || 1,
+      timestamp: a.timestamp || new Date().toISOString(),
+      createdAt: a.createdAt || a.timestamp || new Date().toISOString(),
+      updatedAt: a.updatedAt || new Date().toISOString(),
+    }));
+
     const rawWorksheets = Array.isArray(raw.worksheets)
       ? raw.worksheets
       : Array.isArray(raw.allocatedWorksheets)
@@ -2304,6 +2325,7 @@ export default function CentralPortal() {
       classes: importedClasses,
       students: importedStudents,
       learningGaps: importedGaps,
+      assessments: importedAssessments,
       worksheets: rawWorksheets,
     };
   };
@@ -2339,7 +2361,12 @@ export default function CentralPortal() {
   const handleImportFromLocalApp = async () => {
     try {
       setIsImporting(true);
-      const snap = await loadSnapshot();
+      let snap = await loadSnapshot();
+      if (!snap || !snap.students || snap.students.length === 0) {
+        if (snapshot && snapshot.students && snapshot.students.length > 0) {
+          snap = snapshot;
+        }
+      }
       if (!snap || !snap.students || snap.students.length === 0) {
         setImportStatus({
           type: "error",
@@ -2357,9 +2384,10 @@ export default function CentralPortal() {
         return;
       }
       const bundle = parseOfflinePackage(snap);
-      setImportFileName("Local Mobile Vault (IndexedDB)");
+      const vaultLabel = language === "hi" ? "स्थानीय मोबाइल वॉल्ट (IndexedDB)" : "Local Mobile Vault (IndexedDB)";
+      setImportFileName(vaultLabel);
       // Directly commit and sync in 1 click!
-      await handleCommitImport(bundle, "Local Mobile Vault (IndexedDB)");
+      await handleCommitImport(bundle, vaultLabel);
     } catch (err: any) {
       console.error("Local app vault import error:", err);
       setImportStatus({
@@ -2534,6 +2562,65 @@ export default function CentralPortal() {
           } catch {}
           return nextWorksheets;
         });
+      }
+
+      // 4b. Ingest Assessments to central server
+      if (data.assessments && data.assessments.length > 0) {
+        for (const asm of data.assessments) {
+          try {
+            await portalFetch("/api/assessments", {
+              method: "POST",
+              body: JSON.stringify(asm),
+            });
+          } catch (e) {
+            console.warn("Assessment server sync warning:", e);
+          }
+        }
+      }
+
+      // 4c. Auto-reset class and status filters so imported students/gaps are immediately visible
+      setSelectedClassId("all");
+      setSelectedGradeFilter("all");
+      setSelectedStatusFilter("all");
+
+      // 4d. Mirror to local IndexedDB for cross-app synchronization
+      try {
+        const currentSnap = await loadSnapshot();
+        if (currentSnap) {
+          const mergedStudents = [...currentSnap.students];
+          for (const s of data.students) {
+            const idx = mergedStudents.findIndex((ms) => ms.id === s.id);
+            if (idx >= 0) {
+              mergedStudents[idx] = { ...mergedStudents[idx], ...s };
+            } else {
+              mergedStudents.push(s as any);
+            }
+          }
+          const mergedGaps = [...currentSnap.gaps];
+          for (const g of data.learningGaps) {
+            const idx = mergedGaps.findIndex((mg) => mg.id === g.id);
+            if (idx >= 0) {
+              mergedGaps[idx] = { ...mergedGaps[idx], ...g };
+            } else {
+              mergedGaps.push(g as any);
+            }
+          }
+          await saveSnapshot({
+            ...currentSnap,
+            students: mergedStudents,
+            gaps: mergedGaps,
+            assessments:
+              data.assessments && data.assessments.length > 0
+                ? Array.from(
+                    new Map(
+                      [...currentSnap.assessments, ...data.assessments].map((a) => [a.id, a as any])
+                    ).values()
+                  )
+                : currentSnap.assessments,
+          });
+        }
+      } catch (e) {
+        console.warn("Could not mirror import to local IndexedDB:", e);
       }
 
       // 5. Append Sync Log Entry for Audit Trail
@@ -5253,7 +5340,31 @@ export default function CentralPortal() {
                 </div>
               )}
 
-              {/* Ingestion Ingestion Channels (3 methods) */}
+              {/* Latest Sync Summary Banner */}
+              {lastSyncSummary && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-950">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <span className="font-bold text-emerald-900">
+                        {language === "hi" ? "अंतिम सफल सिंक सारांश" : "Latest Sync Summary"}
+                      </span>
+                      <p className="text-[11px] text-emerald-700">
+                        {lastSyncSummary.source} · {lastSyncSummary.time}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-[11px] font-mono">
+                    <span><strong>{lastSyncSummary.totalStudents}</strong> {language === "hi" ? "विद्यार्थी" : "Students"}</span>
+                    <span><strong>+{lastSyncSummary.addedStudents}</strong> {language === "hi" ? "नए" : "New"}</span>
+                    <span><strong>{lastSyncSummary.gapsCount}</strong> {language === "hi" ? "अंतराल" : "Gaps"}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Ingestion Channels (3 methods) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                 {/* Channel 1: Upload File */}
                 <div className="p-4 rounded-2xl border-2 border-dashed border-border hover:border-primary/60 bg-card transition-all flex flex-col justify-between space-y-3">
