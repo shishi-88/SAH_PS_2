@@ -92,7 +92,7 @@ class CentralStore {
     const now = new Date().toISOString();
     const reqTeacherName = input.teacherName.trim();
     const reqSchoolName = input.schoolName?.trim() || undefined;
-    const reqClassroomName = input.classroomName.trim() || "Class 1–3 Primary Section";
+    const reqClassroomName = input.classroomName?.trim() || "Class 1–3 Primary Section";
 
     const existingDevice = this.devices.get(input.deviceId);
     let teacher: TeacherEntity | undefined;
@@ -166,7 +166,7 @@ class CentralStore {
     return {
       id: `cls_${randomUUID()}`,
       teacherId,
-      name: input.classroomName.trim() || "Class 1–3 Primary Section",
+      name: input.classroomName?.trim() || "Class 1–3 Primary Section",
       gradeBand: "Classes 1-3",
       studentsPerDay: 5,
       reassessmentDays: 14,

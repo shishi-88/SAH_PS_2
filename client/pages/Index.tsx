@@ -39,12 +39,14 @@ export default function Index() {
     (g) => g.status === "active" && new Date(g.reassessmentDueAt).getTime() <= Date.now(),
   );
 
-  const roster = [...students].sort((a, b) => a.rollNo.localeCompare(b.rollNo, undefined, { numeric: true }));
+  const roster = [...(students || [])].sort((a, b) =>
+    (a.rollNo || "").toString().localeCompare((b.rollNo || "").toString(), undefined, { numeric: true })
+  );
 
-  const firstName = (s: { name: string }) => s.name.split(" ")[0];
-  const nextUp = rotation.remainingIds
-    .slice(0, rotation.studentsPerDay)
-    .map((id) => students.find((s) => s.id === id))
+  const firstName = (s: { name: string }) => s.name?.split(" ")[0] || s.name || "";
+  const nextUp = (rotation.remainingIds || [])
+    .slice(0, rotation.studentsPerDay || 5)
+    .map((id) => (students || []).find((s) => s.id === id))
     .filter((s): s is Student => Boolean(s));
   const readyGapByStudent = new Map<string, (typeof today.reassessGaps)[number]>();
   for (const g of today.reassessGaps) {

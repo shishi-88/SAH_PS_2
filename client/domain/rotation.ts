@@ -17,11 +17,13 @@ export function rotationView(
   classroom: Classroom,
   students: Student[],
 ): RotationView {
-  const total = students.length;
-  const assessed = new Set(classroom.assessedInRotationIds.filter((id) => students.some((s) => s.id === id)));
-  const remainingIds = students.filter((s) => !assessed.has(s.id)).map((s) => s.id);
+  const safeStudents = Array.isArray(students) ? students : [];
+  const total = safeStudents.length;
+  const assessedList = Array.isArray(classroom?.assessedInRotationIds) ? classroom.assessedInRotationIds : [];
+  const assessed = new Set(assessedList.filter((id) => safeStudents.some((s) => s.id === id)));
+  const remainingIds = safeStudents.filter((s) => !assessed.has(s.id)).map((s) => s.id);
   const remaining = remainingIds.length;
-  const perDay = classroom.studentsPerDay || DEFAULT_STUDENTS_PER_DAY;
+  const perDay = classroom?.studentsPerDay || DEFAULT_STUDENTS_PER_DAY;
   const schoolDaysLeft = remaining === 0 ? 0 : Math.max(1, Math.ceil(remaining / perDay));
   return {
     assessedCount: assessed.size,
@@ -39,7 +41,8 @@ export function markAssessedInRotation(
   studentId: string,
   studentCount: number,
 ): Classroom {
-  const ids = new Set(classroom.assessedInRotationIds);
+  const assessedList = Array.isArray(classroom?.assessedInRotationIds) ? classroom.assessedInRotationIds : [];
+  const ids = new Set(assessedList);
   ids.add(studentId);
   const allDone = studentCount > 0 && ids.size >= studentCount;
   if (allDone) {

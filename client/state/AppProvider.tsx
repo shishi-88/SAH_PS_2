@@ -36,8 +36,9 @@ export type AppPhase = "loading" | "setup" | "ready";
 
 export interface TeacherSetupInput {
   teacherName: string;
+  password?: string;
   schoolName?: string;
-  classroomName: string;
+  classroomName?: string;
 }
 
 interface AppContextValue {
@@ -275,6 +276,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const completeSetup = useCallback(
     async (input: TeacherSetupInput) => {
       const deviceId = getOrCreateDeviceId();
+      const classroomName = input.classroomName?.trim() || "Class 1–3 Primary Section (कक्षा 1–3)";
       let next: TeacherSession;
       try {
         const res = await fetch("/api/auth/setup", {
@@ -283,8 +285,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({
             deviceId,
             teacherName: input.teacherName,
+            password: input.password,
             schoolName: input.schoolName,
-            classroomName: input.classroomName,
+            classroomName,
           }),
         });
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
@@ -319,7 +322,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           classroomId: `cls_${createId("local")}`,
           teacherName: input.teacherName.trim(),
           schoolName: input.schoolName?.trim() || undefined,
-          classroomName: input.classroomName.trim(),
+          classroomName,
           establishedAt: now,
           establishedOnline: false,
         };
@@ -372,6 +375,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         name: next.classroomName,
         teacherLabel: next.teacherName,
         schoolName: next.schoolName,
+        assessedInRotationIds: Array.isArray(snapshot.classroom?.assessedInRotationIds)
+          ? snapshot.classroom.assessedInRotationIds
+          : [],
+        studentsPerDay: snapshot.classroom?.studentsPerDay || 5,
+        reassessmentDays: snapshot.classroom?.reassessmentDays || 14,
       };
       await save({ ...snapshot, classroom: nextClassroom, students });
       setPhase("ready");

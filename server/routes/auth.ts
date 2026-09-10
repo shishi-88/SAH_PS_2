@@ -15,7 +15,7 @@ export function handleTeacherSetup(req: Request, res: Response) {
   const body = (req.body ?? {}) as TeacherSetupRequest;
   const deviceId = String(body.deviceId ?? "").trim();
   const teacherName = String(body.teacherName ?? "").trim();
-  const classroomName = String(body.classroomName ?? "").trim();
+  const classroomName = body.classroomName ? String(body.classroomName).trim() : undefined;
   if (!deviceId || !teacherName) {
     return res
       .status(400)
@@ -25,6 +25,7 @@ export function handleTeacherSetup(req: Request, res: Response) {
   const { session, teacher, classroom } = centralStore.setupTeacher({
     deviceId,
     teacherName,
+    password: body.password ? String(body.password) : undefined,
     schoolName: body.schoolName ? String(body.schoolName).trim() : undefined,
     classroomName: classroomName || "Class 1–3 Primary Section",
   });

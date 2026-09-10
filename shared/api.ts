@@ -87,8 +87,9 @@ export interface TeacherSession {
 export interface TeacherSetupRequest {
   deviceId: string;
   teacherName: string;
+  password?: string;
   schoolName?: string;
-  classroomName: string;
+  classroomName?: string;
 }
 
 export interface TeacherSetupResponse {

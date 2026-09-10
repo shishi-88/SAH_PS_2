@@ -24,36 +24,42 @@ const STRINGS = {
   },
   "header.language": { en: "Language", hi: "भाषा" },
 
-  /* Teacher setup */
+  /* Teacher login & session setup */
   "setup.loading": { en: "Opening…", hi: "खुल रहा है…" },
-  "setup.title": { en: "Set up your classroom", hi: "अपनी कक्षा सेट करें" },
-  "setup.subtitle": { en: "One-time setup for this device", hi: "इस डिवाइस के लिए एक बार की सेटअप" },
-  "setup.teacherName": { en: "Teacher name", hi: "शिक्षक का नाम" },
-  "setup.teacherPlaceholder": { en: "e.g. Prerna Sharma", hi: "जैसे प्रेरणा शर्मा" },
-  "setup.schoolName": { en: "School name (optional)", hi: "स्कूल का नाम (वैकल्पिक)" },
+  "setup.title": { en: "Teacher Login", hi: "शिक्षक लॉगिन" },
+  "setup.subtitle": {
+    en: "Sign in to your teacher workspace (offline-ready)",
+    hi: "अपने शिक्षक कार्यक्षेत्र में साइन इन करें (ऑफ़लाइन तैयार)",
+  },
+  "setup.teacherName": { en: "Teacher Login ID / Name", hi: "शिक्षक लॉगिन आईडी / नाम" },
+  "setup.teacherPlaceholder": { en: "e.g. Prerna Sharma or tea_demo", hi: "जैसे प्रेरणा शर्मा या आईडी" },
+  "setup.password": { en: "Password", hi: "पासवर्ड" },
+  "setup.passwordPlaceholder": { en: "Enter your password", hi: "अपना पासवर्ड दर्ज करें" },
+  "setup.schoolName": { en: "School name / District (optional)", hi: "स्कूल का नाम / ज़िला (वैकल्पिक)" },
   "setup.schoolPlaceholder": { en: "e.g. GPS-104 Primary School", hi: "जैसे जीपीएस-104 प्राइमरी स्कूल" },
   "setup.classroomName": { en: "Classroom name", hi: "कक्षा का नाम" },
   "setup.classroomPlaceholder": {
-    en: "e.g. Class 1–3 Morning Section",
-    hi: "जैसे कक्षा 1–3 सुबह का सेक्शन",
+    en: "e.g. Class 1–3 Primary Section",
+    hi: "जैसे कक्षा 1–3 प्राथमिक सेक्शन",
   },
-  "setup.continue": { en: "Open my classroom", hi: "मेरी कक्षा खोलें" },
-  "setup.saving": { en: "Setting up…", hi: "सेट हो रहा है…" },
+  "setup.continue": { en: "Log In & Open Workspace", hi: "लॉगिन करें और कार्यक्षेत्र खोलें" },
+  "setup.saving": { en: "Signing in…", hi: "साइन इन हो रहा है…" },
+  "setup.demoLogin": { en: "Demo Teacher 1-Click Login", hi: "डेमो शिक्षक 1-क्लिक लॉगिन" },
   "setup.once": {
-    en: "This device remembers you — no daily login.",
-    hi: "यह डिवाइस आपको याद रखता है — रोज़ लॉगिन की ज़रूरत नहीं।",
+    en: "This device securely remembers your session — no repeated daily logins.",
+    hi: "यह डिवाइस आपके सत्र को सुरक्षित रूप से याद रखता है — बार-बार रोज़ लॉगिन की ज़रूरत नहीं।",
   },
   "setup.returns": {
-    en: "Coming back later opens straight to your dashboard.",
-    hi: "बाद में लौटने पर सीधे आपका डैशबोर्ड खुलेगा।",
+    en: "Reopening the app takes you directly to your class workspace.",
+    hi: "ऐप दोबारा खोलने पर सीधे आपकी कक्षा कार्यक्षेत्र खुलेगी।",
   },
   "setup.offline": {
-    en: "Works offline after setup. First-time setup needs the reporting server once.",
-    hi: "सेटअप के बाद ऑफ़लाइन चलता है। पहली बार सेटअप के लिए एक बार रिपोर्टिंग सर्वर चाहिए।",
+    en: "Fully operational offline. Authenticates locally and syncs when online.",
+    hi: "पूरी तरह से ऑफ़लाइन कार्यशील। स्थानीय रूप से प्रमाणित होता है और ऑनलाइन होने पर सिंक करता है।",
   },
   "setup.offlineFallback": {
-    en: "Server not reachable — classroom saved on this device and will bind to your account when online.",
-    hi: "सर्वर उपलब्ध नहीं — कक्षा इस डिवाइस पर सहेजी गई है, ऑनलाइन होने पर आपके खाते से जुड़ जाएगी।",
+    en: "Offline mode active — local session started and will link to server when online.",
+    hi: "ऑफ़लाइन मोड सक्रिय — स्थानीय सत्र शुरू हुआ, ऑनलाइन होने पर सर्वर से जुड़ जाएगा।",
   },
 
   /* Home */
