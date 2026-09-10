@@ -587,6 +587,21 @@ export default function CentralPortal() {
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
+  const [lastSyncSummary, setLastSyncSummary] = useState<{
+    time: string;
+    addedStudents: number;
+    updatedStudents: number;
+    totalStudents: number;
+    gapsCount: number;
+    source: string;
+  } | null>(() => {
+    try {
+      const saved = localStorage.getItem("sahayak_portal_last_sync");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Worksheet Bank & Allocation State
@@ -2152,33 +2167,28 @@ export default function CentralPortal() {
           type: "error",
           message:
             language === "hi"
-              ? "स्थानीय मोबाइल वॉल्ट में कोई विद्यार्थी डेटा नहीं मिला।"
-              : "No student records found in this browser's local mobile vault.",
+              ? "स्थानीय मोबाइल वॉल्ट में कोई विद्यार्थी डेटा नहीं मिला। कृपया पहले मोबाइल शिक्षक ऐप खोलकर मूल्यांकन दर्ज करें।"
+              : "No offline student records found in this browser's local mobile vault. Please record students or assessments in the Teacher App first.",
         });
+        showNotification(
+          language === "hi"
+            ? "मोबाइल वॉल्ट में कोई डेटा नहीं मिला"
+            : "No records found in local mobile vault",
+          "error"
+        );
         return;
       }
       const bundle = parseOfflinePackage(snap);
       setImportFileName("Local Mobile Vault (IndexedDB)");
-      setParsedImportData(bundle);
-      setImportStatus({
-        type: "info",
-        message:
-          language === "hi"
-            ? `स्थानीय वॉल्ट से ${bundle.students.length} विद्यार्थी और ${bundle.learningGaps.length} अंतराल लोड किए गए।`
-            : `Loaded ${bundle.students.length} students and ${bundle.learningGaps.length} gaps from local mobile vault.`,
-      });
-      showNotification(
-        language === "hi"
-          ? "स्थानीय मोबाइल डेटा आयात के लिए तैयार है!"
-          : "Local mobile data staged for import!",
-        "success"
-      );
+      // Directly commit and sync in 1 click!
+      await handleCommitImport(bundle, "Local Mobile Vault (IndexedDB)");
     } catch (err: any) {
       console.error("Local app vault import error:", err);
       setImportStatus({
         type: "error",
         message: `Failed to read local app vault: ${err?.message || "Unknown error"}`,
       });
+      showNotification("Failed to read local app vault", "error");
     } finally {
       setIsImporting(false);
     }
@@ -2212,12 +2222,17 @@ export default function CentralPortal() {
     }
   };
 
-  const handleCommitImport = async (overrideData?: typeof parsedImportData) => {
+  const handleCommitImport = async (
+    overrideData?: typeof parsedImportData,
+    customSource?: string
+  ) => {
     const data = overrideData || parsedImportData;
     if (!data) return;
 
     try {
       setIsImporting(true);
+      const sourceName = customSource || importFileName || "offline-package";
+      const nowIso = new Date().toISOString();
 
       // 1. Merge & Upsert Classes
       if (data.classes && data.classes.length > 0) {
@@ -2234,13 +2249,19 @@ export default function CentralPortal() {
         setClasses((prev) => {
           const map = new Map(prev.map((c) => [c.id, c]));
           for (const c of data.classes) {
-            map.set(c.id, { ...(map.get(c.id) || {}), ...c });
+            map.set(c.id, { ...(map.get(c.id) || {}), ...c, updatedAt: nowIso });
           }
-          return Array.from(map.values());
+          const nextClasses = Array.from(map.values());
+          try {
+            localStorage.setItem("sahayak_portal_classes", JSON.stringify(nextClasses));
+          } catch {}
+          return nextClasses;
         });
       }
 
-      // 2. Merge & Upsert Students
+      // 2. Merge & Upsert Students with Diff Tracking
+      let addedStudentsCount = 0;
+      let updatedStudentsCount = 0;
       if (data.students && data.students.length > 0) {
         for (const stu of data.students) {
           try {
@@ -2255,13 +2276,35 @@ export default function CentralPortal() {
         setStudents((prev) => {
           const map = new Map(prev.map((s) => [s.id, s]));
           for (const s of data.students) {
-            map.set(s.id, { ...(map.get(s.id) || {}), ...s });
+            if (map.has(s.id)) {
+              updatedStudentsCount++;
+              const existing = map.get(s.id)!;
+              map.set(s.id, {
+                ...existing,
+                ...s,
+                lastAssessedAt: s.lastAssessedAt || existing.lastAssessedAt || nowIso,
+                updatedAt: nowIso,
+              });
+            } else {
+              addedStudentsCount++;
+              map.set(s.id, {
+                ...s,
+                lastAssessedAt: s.lastAssessedAt || nowIso,
+                updatedAt: nowIso,
+              });
+            }
           }
-          return Array.from(map.values());
+          const nextStudents = Array.from(map.values());
+          try {
+            localStorage.setItem("sahayak_portal_students", JSON.stringify(nextStudents));
+          } catch {}
+          return nextStudents;
         });
       }
 
-      // 3. Merge & Upsert Learning Gaps
+      // 3. Merge & Upsert Learning Gaps with Diff Tracking
+      let addedGapsCount = 0;
+      let updatedGapsCount = 0;
       if (data.learningGaps && data.learningGaps.length > 0) {
         for (const gap of data.learningGaps) {
           try {
@@ -2276,9 +2319,27 @@ export default function CentralPortal() {
         setLearningGaps((prev) => {
           const map = new Map(prev.map((g) => [g.id, g]));
           for (const g of data.learningGaps) {
-            map.set(g.id, { ...(map.get(g.id) || {}), ...g });
+            if (map.has(g.id)) {
+              updatedGapsCount++;
+              const existing = map.get(g.id)!;
+              map.set(g.id, {
+                ...existing,
+                ...g,
+                updatedAt: nowIso,
+              });
+            } else {
+              addedGapsCount++;
+              map.set(g.id, {
+                ...g,
+                updatedAt: nowIso,
+              });
+            }
           }
-          return Array.from(map.values());
+          const nextGaps = Array.from(map.values());
+          try {
+            localStorage.setItem("sahayak_portal_gaps", JSON.stringify(nextGaps));
+          } catch {}
+          return nextGaps;
         });
       }
 
@@ -2289,30 +2350,62 @@ export default function CentralPortal() {
           for (const w of data.worksheets) {
             map.set(w.id, { ...(map.get(w.id) || {}), ...w });
           }
-          return Array.from(map.values());
+          const nextWorksheets = Array.from(map.values());
+          try {
+            localStorage.setItem("sahayak_portal_worksheets", JSON.stringify(nextWorksheets));
+          } catch {}
+          return nextWorksheets;
         });
       }
 
       // 5. Append Sync Log Entry for Audit Trail
+      const syncDetail =
+        addedStudentsCount > 0
+          ? `Synced ${data.students.length} pupils (${addedStudentsCount} new enrolled, ${updatedStudentsCount} updated) & ${data.learningGaps.length} gaps from ${sourceName}`
+          : `Synced ${data.students.length} pupils (${updatedStudentsCount} profiles updated with latest offline records) & ${data.learningGaps.length} gaps from ${sourceName}`;
+
       const newLog: SyncLogEntry = {
         id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         operationId: `op_import_${Date.now()}`,
         entityType: "student",
         entityId: `batch_${data.students.length}_records`,
-        operation: "CREATE",
-        clientId: importFileName || "offline-importer",
+        operation: "SYNC",
+        clientId: sourceName,
         status: "SYNCED",
         clientVersion: 1,
         serverVersion: 1,
-        receivedAt: new Date().toISOString(),
-        details: `Imported offline package: ${data.students.length} students, ${data.learningGaps.length} gaps from ${importFileName || "manual upload"}`,
+        receivedAt: nowIso,
+        details: syncDetail,
       };
       setSyncLogs((prev) => [newLog, ...prev]);
 
-      const successMsg =
-        language === "hi"
-          ? `सफलतापूर्वक आयातित: ${data.students.length} विद्यार्थी, ${data.learningGaps.length} शिक्षण अंतराल!`
-          : `Successfully imported: ${data.students.length} students, ${data.learningGaps.length} learning gaps into Central Database!`;
+      // 6. Save Sync Summary
+      const summaryObj = {
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        addedStudents: addedStudentsCount,
+        updatedStudents: updatedStudentsCount,
+        totalStudents: data.students.length,
+        gapsCount: data.learningGaps.length,
+        source: sourceName,
+      };
+      setLastSyncSummary(summaryObj);
+      try {
+        localStorage.setItem("sahayak_portal_last_sync", JSON.stringify(summaryObj));
+      } catch {}
+
+      // 7. Success Notifications with Crystal Clear Explanation
+      let successMsg = "";
+      if (language === "hi") {
+        successMsg =
+          addedStudentsCount > 0
+            ? `सफलतापूर्वक सिंक किया गया: ${addedStudentsCount} नए विद्यार्थी जोड़े गए, ${updatedStudentsCount} अपडेट हुए, और ${data.learningGaps.length} शिक्षण अंतराल सिंक हुए!`
+            : `सफलतापूर्वक सिंक किया गया: सभी ${updatedStudentsCount} विद्यार्थियों के ऑफ़लाइन रिकॉर्ड्स और ${data.learningGaps.length} शिक्षण अंतराल अपडेट हुए!`;
+      } else {
+        successMsg =
+          addedStudentsCount > 0
+            ? `Successfully Synced: Enrolled ${addedStudentsCount} new pupils, updated ${updatedStudentsCount} profiles, and synced ${data.learningGaps.length} FLN learning gaps!`
+            : `Successfully Synced: Updated ${updatedStudentsCount} pupil profiles with latest offline assessments & timestamps (${data.learningGaps.length} learning gaps synced)!`;
+      }
 
       setImportStatus({
         type: "success",
@@ -2979,16 +3072,53 @@ export default function CentralPortal() {
                   </Button>
 
                   <Button
-                    variant="ghost"
-                    className="w-full rounded-2xl text-xs gap-2 py-2.5 text-muted-foreground hover:text-foreground border border-border/60 hover:bg-card"
+                    variant="outline"
+                    className="w-full rounded-2xl text-xs font-bold gap-2 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 shadow-2xs transition-all"
                     onClick={handleImportFromLocalApp}
                     disabled={isImporting}
                   >
-                    <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
+                    {isImporting ? (
+                      <RefreshCw className="h-4 w-4 animate-spin text-emerald-600" />
+                    ) : (
+                      <Smartphone className="h-4 w-4 text-emerald-600" />
+                    )}
                     {language === "hi"
-                      ? "ब्राउज़र के मोबाइल वॉल्ट से सीधे लोड करें"
-                      : "Load Directly from Local Mobile Vault"}
+                      ? "⚡ स्थानीय मोबाइल वॉल्ट से 1-क्लिक सिंक करें"
+                      : "⚡ 1-Click Sync from Local Mobile Vault"}
                   </Button>
+                </div>
+              )}
+
+              {/* Last Sync Summary Badge */}
+              {lastSyncSummary && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs space-y-2 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      {language === "hi" ? "मोबाइल वॉल्ट सिंक्रोनाइज़्ड" : "Mobile Vault Synchronized"}
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full font-bold">
+                      {lastSyncSummary.time}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-foreground/80 leading-relaxed">
+                    {lastSyncSummary.addedStudents > 0
+                      ? `Enrolled ${lastSyncSummary.addedStudents} new pupil(s), updated ${lastSyncSummary.updatedStudents} pupil profile(s)`
+                      : `Refreshed ${lastSyncSummary.updatedStudents} pupil profile(s) with latest assessment records`}
+                    {` & synced ${lastSyncSummary.gapsCount} FLN learning gaps.`}
+                  </div>
+                  <div className="pt-1 border-t border-emerald-500/20 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("students")}
+                      className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                    >
+                      {language === "hi" ? "अपडेटेड विद्यार्थी देखें →" : "View Synced Pupils →"}
+                    </button>
+                    <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[140px]">
+                      {lastSyncSummary.source}
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -3167,7 +3297,14 @@ export default function CentralPortal() {
                               <div className="flex items-center gap-3">
                                 <StudentAvatar name={s.name} tint={s.avatarTint as AvatarTint} size="sm" />
                                 <div>
-                                  <span className="font-bold text-sm block">{s.name}</span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-bold text-sm">{s.name}</span>
+                                    {s.lastAssessedAt && (
+                                      <span className="badge-pill bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[9px] font-mono">
+                                        Assessed {formatShortDate(s.lastAssessedAt)}
+                                      </span>
+                                    )}
+                                  </div>
                                   <span className="text-[11px] font-mono text-muted-foreground font-normal">
                                     UUID: {s.id.slice(0, 10)}...
                                   </span>
@@ -4487,8 +4624,12 @@ export default function CentralPortal() {
                     onClick={handleImportFromLocalApp}
                     disabled={isImporting}
                   >
-                    <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
-                    {language === "hi" ? "ब्राउज़र वॉल्ट से लोड करें" : "Load From Local Vault"}
+                    {isImporting ? (
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                    ) : (
+                      <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
+                    )}
+                    {language === "hi" ? "⚡ 1-क्लिक वॉल्ट सिंक" : "⚡ 1-Click Sync From Local Vault"}
                   </Button>
                 </div>
 
