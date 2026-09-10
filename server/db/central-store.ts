@@ -47,6 +47,7 @@ class CentralStore {
       id: "tea_demo",
       name: "Prerna Sharma",
       email: "prerna.sharma@primaryschool.edu.in",
+      password: "teacher123",
       schoolId: "GPS-104",
       schoolName: "Primary School, GPS-104",
       createdAt: new Date().toISOString(),
@@ -114,6 +115,23 @@ class CentralStore {
       );
     }
 
+    const isBoundOnDevice = Boolean(
+      existingDevice &&
+      this.teachers.get(existingDevice.teacherId)?.name.toLowerCase() === reqTeacherName.toLowerCase()
+    );
+
+    // 2b. Password authentication check for existing teacher
+    const reqPassword = input.password?.trim();
+    if (teacher && teacher.password) {
+      if (reqPassword) {
+        if (teacher.password !== reqPassword) {
+          throw new Error("AUTH_INVALID_PASSWORD");
+        }
+      } else if (!isBoundOnDevice) {
+        throw new Error("AUTH_INVALID_PASSWORD");
+      }
+    }
+
     // 3. If teacher still not found, create a new teacher record
     if (!teacher) {
       teacher = this.makeTeacher(input, now);
@@ -156,6 +174,7 @@ class CentralStore {
     return {
       id: `tea_${randomUUID()}`,
       name: input.teacherName.trim(),
+      password: input.password?.trim() || undefined,
       schoolName: input.schoolName?.trim() || undefined,
       createdAt: now,
       updatedAt: now,

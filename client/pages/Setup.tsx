@@ -66,8 +66,12 @@ export default function Setup() {
         schoolName: school?.trim() || undefined,
       });
       navigate("/mobile");
-    } catch {
-      setOfflineNote(true);
+    } catch (err: any) {
+      if (err?.message) {
+        setErrorMessage(err.message);
+      } else {
+        setOfflineNote(true);
+      }
     } finally {
       setBusy(false);
     }

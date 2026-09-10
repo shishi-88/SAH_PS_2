@@ -41,6 +41,7 @@ export interface TeacherEntity {
   schoolId?: string;
   /** Human-readable school name captured during teacher setup. */
   schoolName?: string;
+  password?: string;
   createdAt: string;
   updatedAt: string;
 }

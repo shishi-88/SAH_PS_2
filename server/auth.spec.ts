@@ -327,4 +327,90 @@ describe("Teacher sessions & backend ownership enforcement", () => {
     const body = (await students.json()) as { count: number };
     expect(body.count).toBe(1);
   });
+
+  it("verifies teacher password and enforces 401 on incorrect password", async () => {
+    const url = await listen();
+
+    // Setup teacher with a specific password
+    const setupRes = await fetch(`${url}/api/auth/setup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deviceId: "dev-secure-1",
+        teacherName: "Suman Verma",
+        password: "secretpassword123",
+      }),
+    });
+    expect(setupRes.status).toBe(200);
+
+    // Attempt login from a different device with WRONG password
+    const failRes = await fetch(`${url}/api/auth/setup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deviceId: "dev-secure-2",
+        teacherName: "Suman Verma",
+        password: "wrongpassword",
+      }),
+    });
+    expect(failRes.status).toBe(401);
+    const failBody = await failRes.json();
+    expect(failBody.error).toMatch(/incorrect password/i);
+
+    // Login with CORRECT password
+    const passRes = await fetch(`${url}/api/auth/setup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deviceId: "dev-secure-2",
+        teacherName: "Suman Verma",
+        password: "secretpassword123",
+      }),
+    });
+    expect(passRes.status).toBe(200);
+    const passData = await passRes.json();
+    expect(passData.data.teacher.name).toBe("Suman Verma");
+  });
+
+  it("authenticates web portal users via /api/auth/portal/login", async () => {
+    const url = await listen();
+
+    // 1. Invalid credentials
+    const invalidRes = await fetch(`${url}/api/auth/portal/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "fakeadmin",
+        password: "badpassword",
+      }),
+    });
+    expect(invalidRes.status).toBe(401);
+
+    // 2. Superadmin login (admin / admin123)
+    const adminRes = await fetch(`${url}/api/auth/portal/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "admin",
+        password: "admin123",
+      }),
+    });
+    expect(adminRes.status).toBe(200);
+    const adminData = await adminRes.json();
+    expect(adminData.data.user.role).toBe("Central Admin");
+    expect(adminData.data.sessionToken).toBeDefined();
+
+    // 3. Teacher lead login (Prerna Sharma / teacher123)
+    const teacherRes = await fetch(`${url}/api/auth/portal/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "Prerna Sharma",
+        password: "teacher123",
+      }),
+    });
+    expect(teacherRes.status).toBe(200);
+    const teacherData = await teacherRes.json();
+    expect(teacherData.data.user.username).toBe("Prerna Sharma");
+  });
 });

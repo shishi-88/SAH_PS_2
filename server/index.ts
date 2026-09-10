@@ -14,6 +14,7 @@ import {
   handleRestoreSession,
   handleEndSession,
   handleAdminSession,
+  handlePortalLogin,
 } from "./routes/auth";
 import { requireSession } from "./auth";
 
@@ -35,11 +36,12 @@ export function createServer() {
   apiRouter.get("/demo", handleDemo);
   apiRouter.post("/demo/seed", handleSeedDemo);
 
-  // Teacher session / auth endpoints
+  // Teacher & Portal session / auth endpoints
   apiRouter.post("/auth/setup", handleTeacherSetup);
   apiRouter.post("/auth/restore", handleRestoreSession);
   apiRouter.post("/auth/end", handleEndSession);
   apiRouter.post("/auth/admin/session", handleAdminSession);
+  apiRouter.post("/auth/portal/login", handlePortalLogin);
 
   // Class endpoints (teacher-scoped — every request needs a session)
   apiRouter.get("/classes", requireSession, handleListClasses);

@@ -290,7 +290,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
             classroomName,
           }),
         });
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => null);
+          if (res.status === 401) {
+            const msg = errBody?.error || "Incorrect password for teacher. (Demo password: teacher123)";
+            const authErr = new Error(msg);
+            (authErr as any).isAuthError = true;
+            throw authErr;
+          }
+          throw new Error(`Server returned ${res.status}`);
+        }
         const d = (await res.json()) as {
           data: {
             sessionToken: string;
@@ -311,7 +320,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           establishedAt: new Date().toISOString(),
           establishedOnline: true,
         };
-      } catch {
+      } catch (err: any) {
+        if (err?.isAuthError) {
+          throw err;
+        }
         /* Offline first-run: keep the classroom usable locally. The context
            binds to real server IDs the next time the device is online. */
         const now = new Date().toISOString();
