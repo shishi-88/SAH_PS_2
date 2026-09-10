@@ -123,15 +123,35 @@ function LangButton({
 }
 
 const CHART_COLORS = {
-  primary: "#4f5bd5",
-  secondary: "#8b5cf6",
-  rose: "#f43f5e",
-  amber: "#f59e0b",
-  emerald: "#10b981",
-  indigo: "#6366f1",
+  primary: "#4f46e5",
+  secondary: "#7c3aed",
+  rose: "#e11d48",
+  amber: "#d97706",
+  emerald: "#059669",
+  indigo: "#4338ca",
   teal: "#0d9488",
-  coral: "#f97316",
+  coral: "#ea580c",
 };
+
+function CustomAnalyticsTooltip({ active, payload, label }: any) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-popover/95 backdrop-blur-md border border-border/80 px-3 py-2 rounded-xl shadow-lg text-xs space-y-1">
+        <p className="font-bold text-foreground border-b border-border/40 pb-1">{label || payload[0]?.name}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={`entry-${index}`} className="flex items-center justify-between gap-4 text-[11px]">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: entry.color || entry.fill }} />
+              {entry.name}:
+            </span>
+            <span className="font-mono font-bold text-foreground">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
 
 function generateDefaultDemoDataset(): {
   classes: ClassEntity[];
@@ -2432,42 +2452,45 @@ export default function CentralPortal() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md px-6 py-3.5 shadow-xs">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary shrink-0 shadow-2xs">
-              <BookOpen className="h-5 w-5" strokeWidth={2.2} />
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-card/90 backdrop-blur-xl px-6 py-3.5 shadow-xs transition-all">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 via-primary to-violet-600 text-white shrink-0 shadow-md shadow-primary/25 ring-1 ring-white/20">
+              <BookOpen className="h-5 w-5" strokeWidth={2.4} />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-heading font-bold text-lg text-foreground tracking-tight">
-                  {language === "hi" ? "सहायक केंद्रीय वेब पोर्टल" : "Sahayak Central Web Portal"}
+                <h1 className="font-heading font-extrabold text-lg text-foreground tracking-tight">
+                  {language === "hi" ? "सहायक केंद्रीय वेब पोर्टल" : "Sahayak FLN Command Center"}
+                </h1>
+                <span className="badge-pill bg-primary/10 text-primary border border-primary/20 text-[10px] uppercase font-bold tracking-wider">
+                  NIPUN Bharat Aligned
                 </span>
                 <span
-                  className={`badge-pill text-[10px] ${
+                  className={`badge-pill text-[10px] font-semibold ${
                     supabaseStatus?.connected
                       ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                      : "bg-primary/10 text-primary border border-primary/20"
+                      : "bg-teal-50 text-teal-800 border border-teal-200"
                   }`}
                 >
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
-                      supabaseStatus?.connected ? "bg-emerald-500" : "bg-primary"
+                      supabaseStatus?.connected ? "bg-emerald-500" : "bg-teal-500"
                     } animate-pulse`}
                   />
                   {supabaseStatus?.connected
                     ? language === "hi"
-                      ? "सुपाबेस क्लाउड कनेक्टेड"
-                      : "Supabase Cloud Connected"
+                      ? "क्लाउड सिंक सक्रिय"
+                      : "Cloud Sync Active"
                     : language === "hi"
                     ? "स्थानीय वॉल्ट + सुपाबेस"
                     : "Local Vault + Supabase SDK"}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {language === "hi"
-                  ? "कक्षा 1–3 बुनियादी साक्षरता एवं संख्यात्मकता (FLN) शिक्षक प्रबंधन एवं अभ्यास पत्रक केंद्र"
-                  : "Classes 1–3 Foundational Literacy & Numeracy (FLN) Teacher Management & Practice Hub"}
+                  ? "कक्षा 1–3 बुनियादी साक्षरता एवं संख्यात्मकता (FLN) शिक्षक प्रबंधन, व्यक्तिगत निदान व अभ्यास पत्रक हब"
+                  : "Foundational Literacy & Numeracy (FLN) Teacher Management, Gap Diagnosis & Practice Hub"}
               </p>
             </div>
           </div>
@@ -2477,7 +2500,7 @@ export default function CentralPortal() {
             <div
               role="group"
               aria-label="Language"
-              className="flex items-center gap-0.5 rounded-full border border-border bg-background p-0.5"
+              className="flex items-center gap-0.5 rounded-full border border-border bg-muted/40 p-0.5 shadow-2xs"
             >
               <LangButton active={language === "en"} onClick={() => setLanguage("en")}>
                 EN
@@ -2487,48 +2510,52 @@ export default function CentralPortal() {
               </LangButton>
             </div>
 
-            {/* Add Student Quick Button */}
+            {/* Quick Enroll Student */}
             <Button
               size="sm"
-              className="rounded-full text-xs h-9 px-3.5 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold gap-1.5 shadow-xs"
+              className="rounded-full text-xs h-9 px-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 shadow-xs"
               onClick={handleOpenCreateStudent}
             >
               <UserPlus className="h-3.5 w-3.5" />
-              {language === "hi" ? "+ नया विद्यार्थी जोड़ें" : "+ Enroll Student"}
+              {language === "hi" ? "+ नया विद्यार्थी" : "+ Enroll Student"}
             </Button>
 
+            {/* Demo Seed */}
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full text-xs h-9 px-3.5 border-border bg-card hover:bg-muted font-semibold text-foreground gap-1.5"
+              className="rounded-full text-xs h-9 px-3.5 border-border bg-card hover:bg-muted font-semibold text-foreground gap-1.5 shadow-2xs"
               onClick={handleSeedDemoData}
               disabled={seeding}
             >
-              <Sparkles className={`h-3.5 w-3.5 text-amber-600 ${seeding ? "animate-spin" : ""}`} />
+              <Sparkles className={`h-3.5 w-3.5 text-amber-500 ${seeding ? "animate-spin" : ""}`} />
               {seeding
                 ? language === "hi"
-                  ? "डेटा लोड हो रहा है..."
-                  : "Seeding Data..."
+                  ? "लोड हो रहा है..."
+                  : "Seeding..."
                 : language === "hi"
                 ? "FLN डेमो डेटा"
-                : "Seed FLN Demo Data"}
+                : "Seed Demo"}
             </Button>
 
+            {/* Refresh */}
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full text-xs h-9 px-3 border-border bg-card hover:bg-muted font-medium"
+              className="rounded-full text-xs h-9 px-3 border-border bg-card hover:bg-muted font-medium shadow-2xs"
               onClick={fetchCentralData}
               disabled={refreshing}
+              title="Refresh Records"
             >
               <RefreshCw
                 className={`h-3.5 w-3.5 text-primary ${refreshing ? "animate-spin" : ""}`}
               />
             </Button>
 
+            {/* Teacher App Link */}
             <Link
               to="/mobile"
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-xs font-semibold shadow-soft transition-all"
+              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-500 text-white px-4 py-2 text-xs font-semibold shadow-xs hover:shadow-sm transition-all"
             >
               <Smartphone className="h-3.5 w-3.5" />
               <span>{language === "hi" ? "शिक्षक मोबाइल ऐप" : "Teacher Mobile App"}</span>
@@ -2556,236 +2583,294 @@ export default function CentralPortal() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        {/* KPI Row */}
+        {/* Unified Executive KPI Row */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+          {/* Card 1: Students */}
           <div
             onClick={() => setActiveTab("students")}
-            className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 group"
+            className="group relative overflow-hidden bg-card border border-border/80 rounded-2xl p-4.5 cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-indigo-500/40 transition-all duration-200 shadow-2xs flex flex-col justify-between"
           >
-            <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity group-hover:scale-110 duration-500">
-               <Users className="h-24 w-24 text-primary" />
-            </div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 bg-primary/10 rounded-xl text-primary ring-1 ring-primary/20">
-                <Users className="h-5 w-5" />
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Pupils</span>
+                <div className="h-8 w-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center ring-1 ring-indigo-500/20 group-hover:scale-110 transition-transform">
+                  <Users className="h-4 w-4" />
+                </div>
               </div>
-              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">Students</span>
+              <p className="text-3xl font-extrabold text-foreground tracking-tight">{students.length}</p>
             </div>
-            <div className="flex flex-col relative z-10 mt-3">
-               <p className="text-4xl font-black text-slate-800 dark:text-slate-100">{students.length}</p>
-               <span className="text-[11px] font-bold text-primary flex items-center gap-1 mt-2">Enrolled Pupils <ArrowUpRight className="h-3 w-3" /></span>
+            <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5">
+                Roster <ArrowUpRight className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {classes.length} Classes
+              </span>
             </div>
           </div>
 
+          {/* Card 2: Reading Gaps */}
           <div
             onClick={() => {
               setGapSubjectFilter("reading");
               setActiveTab("gaps");
             }}
-            className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-500/10 transition-all duration-300 group"
+            className="group relative overflow-hidden bg-card border border-border/80 rounded-2xl p-4.5 cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-rose-500/40 transition-all duration-200 shadow-2xs flex flex-col justify-between"
           >
-            <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity group-hover:scale-110 duration-500">
-               <BookOpen className="h-24 w-24 text-rose-500" />
-            </div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 bg-rose-500/10 rounded-xl text-rose-600 ring-1 ring-rose-500/20">
-                <BookOpen className="h-5 w-5" />
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Reading</span>
+                <div className="h-8 w-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center ring-1 ring-rose-500/20 group-hover:scale-110 transition-transform">
+                  <BookOpen className="h-4 w-4" />
+                </div>
               </div>
-              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">Reading</span>
+              <p className="text-3xl font-extrabold text-foreground tracking-tight">{readingGapsCount}</p>
             </div>
-            <div className="flex flex-col relative z-10 mt-3">
-               <p className="text-4xl font-black text-slate-800 dark:text-slate-100">{readingGapsCount}</p>
-               <span className="text-[11px] font-bold text-rose-600 flex items-center gap-1 mt-2">Phonics & Blends <ArrowUpRight className="h-3 w-3" /></span>
+            <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-0.5">
+                Phonics & Words <ArrowUpRight className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded font-bold font-mono">
+                FLN Needs
+              </span>
             </div>
           </div>
 
+          {/* Card 3: Numeracy Gaps */}
           <div
             onClick={() => {
               setGapSubjectFilter("numeracy");
               setActiveTab("gaps");
             }}
-            className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300 group"
+            className="group relative overflow-hidden bg-card border border-border/80 rounded-2xl p-4.5 cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-amber-500/40 transition-all duration-200 shadow-2xs flex flex-col justify-between"
           >
-            <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity group-hover:scale-110 duration-500">
-               <Calculator className="h-24 w-24 text-amber-500" />
-            </div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-600 ring-1 ring-amber-500/20">
-                <Calculator className="h-5 w-5" />
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Numeracy</span>
+                <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center ring-1 ring-amber-500/20 group-hover:scale-110 transition-transform">
+                  <Calculator className="h-4 w-4" />
+                </div>
               </div>
-              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">Numeracy</span>
+              <p className="text-3xl font-extrabold text-foreground tracking-tight">{numeracyGapsCount}</p>
             </div>
-            <div className="flex flex-col relative z-10 mt-3">
-               <p className="text-4xl font-black text-slate-800 dark:text-slate-100">{numeracyGapsCount}</p>
-               <span className="text-[11px] font-bold text-amber-600 flex items-center gap-1 mt-2">Decades & Place Value <ArrowUpRight className="h-3 w-3" /></span>
+            <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5">
+                Place Value & Math <ArrowUpRight className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-bold font-mono">
+                Decades
+              </span>
             </div>
           </div>
 
+          {/* Card 4: Allocated Worksheets */}
           <div
             onClick={() => setActiveTab("worksheets")}
-            className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 group"
+            className="group relative overflow-hidden bg-card border border-border/80 rounded-2xl p-4.5 cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-violet-500/40 transition-all duration-200 shadow-2xs flex flex-col justify-between"
           >
-            <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity group-hover:scale-110 duration-500">
-               <ClipboardList className="h-24 w-24 text-indigo-500" />
-            </div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-600 ring-1 ring-indigo-500/20">
-                <ClipboardList className="h-5 w-5" />
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Worksheets</span>
+                <div className="h-8 w-8 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center ring-1 ring-violet-500/20 group-hover:scale-110 transition-transform">
+                  <ClipboardList className="h-4 w-4" />
+                </div>
               </div>
-              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">Drills</span>
+              <p className="text-3xl font-extrabold text-foreground tracking-tight">{allocatedWorksheets.length}</p>
             </div>
-            <div className="flex flex-col relative z-10 mt-3">
-               <p className="text-4xl font-black text-slate-800 dark:text-slate-100">{allocatedWorksheets.length}</p>
-               <span className="text-[11px] font-bold text-indigo-600 flex items-center gap-1 mt-2">Allocated Sheets <ArrowUpRight className="h-3 w-3" /></span>
+            <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-0.5">
+                Practice Drills <ArrowUpRight className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                Tier 1–3
+              </span>
             </div>
           </div>
 
-          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-5 shadow-xl shadow-emerald-500/20 group">
-            <div className="absolute -top-4 -right-4 p-4 opacity-20 group-hover:opacity-30 transition-opacity group-hover:scale-110 duration-500">
-               <CheckCircle2 className="h-24 w-24 text-white" />
-            </div>
-            <div className="flex items-center gap-3 mb-2 relative z-10">
-              <div className="p-2.5 bg-white/20 rounded-xl text-white backdrop-blur-sm ring-1 ring-white/30">
-                <CheckCircle2 className="h-5 w-5" />
+          {/* Card 5: Resolved & Mastery */}
+          <div
+            onClick={() => {
+              setSelectedStatusFilter("ontrack");
+              setActiveTab("students");
+            }}
+            className="group relative overflow-hidden bg-card border border-border/80 rounded-2xl p-4.5 cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-500/40 transition-all duration-200 shadow-2xs flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Mastered</span>
+                <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center ring-1 ring-emerald-500/20 group-hover:scale-110 transition-transform">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
               </div>
-              <span className="text-xs font-bold tracking-wider text-emerald-50 uppercase drop-shadow-sm">Resolved</span>
+              <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight">{resolvedGapsCount}</p>
             </div>
-            <div className="flex flex-col relative z-10 mt-3">
-               <p className="text-4xl font-black text-white drop-shadow-md">{resolvedGapsCount}</p>
-               <span className="text-[11px] font-bold text-emerald-100 flex items-center gap-1 mt-2 drop-shadow-sm">Remediated & Verified <CheckCircle2 className="h-3 w-3" /></span>
+            <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-0.5">
+                Verified Mastery <Check className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold font-mono">
+                {activeGapsCount + resolvedGapsCount > 0
+                  ? `${Math.round((resolvedGapsCount / (activeGapsCount + resolvedGapsCount)) * 100)}%`
+                  : "100%"}
+              </span>
             </div>
           </div>
 
+          {/* Card 6: Live Engine & Sync */}
           <div
             onClick={() => setActiveTab("syncLogs")}
-            className="relative overflow-hidden bg-slate-800 dark:bg-slate-900 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-800/20 transition-all duration-300 group"
+            className="group relative overflow-hidden bg-card border border-border/80 rounded-2xl p-4.5 cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-teal-500/40 transition-all duration-200 shadow-2xs flex flex-col justify-between"
           >
-            <div className="absolute -top-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity group-hover:scale-110 duration-500">
-               <Activity className="h-24 w-24 text-slate-400" />
-            </div>
-            <div className="flex items-center gap-3 mb-2 relative z-10">
-              <div className="p-2.5 bg-slate-700 rounded-xl text-slate-300 ring-1 ring-slate-600">
-                <Activity className="h-5 w-5" />
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Sync Engine</span>
+                <div className="h-8 w-8 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center ring-1 ring-teal-500/20 group-hover:scale-110 transition-transform">
+                  <Activity className="h-4 w-4" />
+                </div>
               </div>
-              <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">Sync Status</span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`h-2.5 w-2.5 rounded-full ${supabaseStatus?.connected ? "bg-emerald-500 animate-pulse" : "bg-teal-500"}`} />
+                <span className="text-sm font-bold text-foreground truncate">
+                  {supabaseStatus?.connected ? "Cloud Synced" : "Local Vault"}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col relative z-10 mt-3">
-               <div className="flex items-center gap-2 mt-1 mb-2">
-                 <div className={`h-2.5 w-2.5 rounded-full ${supabaseStatus?.connected ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" : "bg-rose-500"}`} />
-                 <p className="text-sm font-bold text-white tracking-wide truncate">
-                   {supabaseStatus?.connected ? "Cloud Sync Active" : "Local Vault"}
-                 </p>
-               </div>
-               <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 mt-1">{syncedCount} sync events <ArrowUpRight className="h-3 w-3" /></span>
+            <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-teal-600 dark:text-teal-400 flex items-center gap-0.5">
+                {syncLogs.length} Audit Events <ArrowUpRight className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                Real-time
+              </span>
             </div>
           </div>
         </section>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-1.5 border-b border-border pb-3 overflow-x-auto">
+        {/* Enterprise Segmented Tab Navigation */}
+        <div className="flex items-center gap-1 p-1 rounded-2xl bg-muted/50 border border-border/80 overflow-x-auto shadow-2xs backdrop-blur-sm">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "overview"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-card"
+                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             }`}
           >
+            <Compass className="h-3.5 w-3.5" />
             {language === "hi" ? "सिंहावलोकन" : "Overview"}
           </button>
           <button
             onClick={() => setActiveTab("students")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "students"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-card"
+                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             }`}
           >
             <Users className="h-3.5 w-3.5" />
-            {language === "hi" ? "विद्यार्थी प्रबंधन एवं जरूरतें" : "Student Profiles & Needs"} ({students.length})
+            {language === "hi" ? "विद्यार्थी एवं जरूरतें" : "Pupils & Needs"}
+            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono text-muted-foreground font-semibold">
+              {students.length}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("worksheets")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "worksheets"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-card"
+                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             }`}
           >
             <ClipboardList className="h-3.5 w-3.5" />
-            {language === "hi" ? "अभ्यास पत्रक आवंटन बैंक" : "Worksheet Bank & Allocation"}
+            {language === "hi" ? "अभ्यास पत्रक बैंक" : "Worksheet Bank"}
+            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono text-muted-foreground font-semibold">
+              {allocatedWorksheets.length}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("gaps")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "gaps"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-card"
+                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             }`}
           >
-            <AlertCircle className="h-3.5 w-3.5" />
-            {language === "hi" ? "कौशल अंतराल मैट्रिक्स" : "Skill Gaps Matrix"} ({activeGapsCount})
+            <AlertCircle className="h-3.5 w-3.5 text-rose-500" />
+            {language === "hi" ? "कौशल अंतराल" : "Skill Gaps"}
+            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-700 font-mono font-bold">
+              {activeGapsCount}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("interventionCircles")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "interventionCircles"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-card"
+                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             }`}
           >
-            <Users className="h-3.5 w-3.5" />
-            {language === "hi" ? "सहायता समूह (Interventions)" : "Intervention Circles"} ({aggregatedGaps.length})
+            <Users className="h-3.5 w-3.5 text-amber-500" />
+            {language === "hi" ? "सहायता समूह" : "Support Circles"}
+            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-amber-50 text-amber-700 font-mono font-bold">
+              {aggregatedGaps.length}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("classes")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "classes"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-card"
+                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             }`}
           >
-            {language === "hi" ? "कक्षाएं (Classrooms)" : "Classrooms"} ({classes.length})
+            <School className="h-3.5 w-3.5" />
+            {language === "hi" ? "कक्षाएं" : "Classrooms"}
+            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono text-muted-foreground font-semibold">
+              {classes.length}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("analytics")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "analytics"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-card"
+                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             }`}
           >
-            <BarChart3 className="h-3.5 w-3.5" />
-            {language === "hi" ? "विजुअल एनालिटिक्स" : "Visual Analytics"}
+            <BarChart3 className="h-3.5 w-3.5 text-primary" />
+            {language === "hi" ? "एनालिटिक्स" : "Analytics"}
           </button>
           <button
             onClick={() => setActiveTab("syncLogs")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "syncLogs"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-card"
+                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             }`}
           >
             <Upload className="h-3.5 w-3.5" />
-            {language === "hi" ? "ऑफ़लाइन डेटा आयात" : "Offline Data Import"} ({syncLogs.length})
+            {language === "hi" ? "ऑफ़लाइन सिंक" : "Offline Ingest"}
+            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono text-muted-foreground font-semibold">
+              {syncLogs.length}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("reports")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "reports"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-card"
+                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             }`}
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
-            {language === "hi" ? "रिपोर्ट्स और निर्यात" : "Reports & Export"}
+            {language === "hi" ? "रिपोर्ट्स" : "Reports"}
           </button>
           <button
             onClick={() => setActiveTab("workflow")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "workflow"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-card"
+                ? "bg-card text-foreground shadow-xs border border-border/70 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             }`}
           >
             <HelpCircle className="h-3.5 w-3.5" />
@@ -2800,15 +2885,22 @@ export default function CentralPortal() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
               {/* Teacher Pipeline Banner */}
-              <div className="glass-panel p-6 space-y-4">
+              <div className="glass-panel p-6 space-y-5">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Database className="h-5 w-5 text-primary" />
-                    <h2 className="font-heading font-bold text-lg text-foreground">
-                      {language === "hi"
-                        ? "शिक्षक मोबाइल ऐप → केंद्रीय प्रबंधन पाइपलाइन"
-                        : "Teacher Mobile App → Central Management Hub"}
-                    </h2>
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <Database className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h2 className="font-heading font-extrabold text-base text-foreground">
+                        {language === "hi"
+                          ? "शिक्षक मोबाइल ऐप → केंद्रीय प्रबंधन पाइपलाइन"
+                          : "Field Mobile App → Central FLN Orchestration"}
+                      </h2>
+                      <p className="text-[11px] text-muted-foreground">
+                        Continuous feedback loop connecting teacher micro-checks to tiered interventions
+                      </p>
+                    </div>
                   </div>
                   <span className="badge-pill bg-emerald-50 text-emerald-800 border border-emerald-200">
                     Live Central Hub
@@ -2821,37 +2913,80 @@ export default function CentralPortal() {
                     : "Teachers conduct 1-minute non-evaluative micro-checks in class. All identified foundational literacy & numeracy gaps stream to this central dashboard, where you can inspect individual improvement needs, allocate practice worksheets, and track remediations."}
                 </p>
 
-                {/* 3 Quick Action Steps */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                  <div
-                    onClick={() => setActiveTab("students")}
-                    className="p-3.5 rounded-2xl bg-secondary/15 border border-border space-y-1.5 cursor-pointer hover:border-secondary transition-all"
-                  >
-                    <span className="text-[10px] font-mono font-bold text-secondary block">STEP 1</span>
-                    <p className="font-bold text-xs text-foreground">Individual Diagnosis</p>
-                    <p className="text-[11px] text-muted-foreground leading-tight">
-                      Inspect specific student gaps (b/d confusion, decade transitions).
-                    </p>
+                {/* 4-Step Closed-Loop Remediation Pipeline Graphic */}
+                <div className="pt-2">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="label-overline">Operational Closed-Loop Pipeline</span>
+                    <span className="text-[11px] font-mono text-muted-foreground">Continuous Mastery Cycle</span>
                   </div>
-                  <div
-                    onClick={() => setActiveTab("worksheets")}
-                    className="p-3.5 rounded-2xl bg-primary/10 border border-border space-y-1.5 cursor-pointer hover:border-primary transition-all"
-                  >
-                    <span className="text-[10px] font-mono font-bold text-primary block">STEP 2</span>
-                    <p className="font-bold text-xs text-foreground">Allocate Practice Sheet</p>
-                    <p className="text-[11px] text-muted-foreground leading-tight">
-                      1-click generate Tier 1–3 tailored drill sheets for the child.
-                    </p>
-                  </div>
-                  <div
-                    onClick={() => setActiveTab("interventionCircles")}
-                    className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/70 space-y-1.5 cursor-pointer hover:border-amber-400 transition-all"
-                  >
-                    <span className="text-[10px] font-mono font-bold text-amber-700 block">STEP 3</span>
-                    <p className="font-bold text-xs text-foreground">Support Circles</p>
-                    <p className="text-[11px] text-muted-foreground leading-tight">
-                      Group students with identical needs for 10-min remedial practice.
-                    </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    {/* Step 1 */}
+                    <div
+                      onClick={() => setActiveTab("students")}
+                      className="group relative p-3.5 rounded-2xl bg-card border border-border/80 hover:border-indigo-500/40 hover:shadow-xs transition-all cursor-pointer space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          STAGE 01
+                        </span>
+                        <Smartphone className="h-4 w-4 text-indigo-600 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <h4 className="font-bold text-xs text-foreground">Formative Micro-Check</h4>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        1-minute low-stress check with audio assistance.
+                      </p>
+                    </div>
+
+                    {/* Step 2 */}
+                    <div
+                      onClick={() => setActiveTab("gaps")}
+                      className="group relative p-3.5 rounded-2xl bg-card border border-border/80 hover:border-rose-500/40 hover:shadow-xs transition-all cursor-pointer space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                          STAGE 02
+                        </span>
+                        <AlertCircle className="h-4 w-4 text-rose-600 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <h4 className="font-bold text-xs text-foreground">Gap Diagnosis</h4>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Identifies root causes (b/d mirror, decade jumps).
+                      </p>
+                    </div>
+
+                    {/* Step 3 */}
+                    <div
+                      onClick={() => setActiveTab("worksheets")}
+                      className="group relative p-3.5 rounded-2xl bg-card border border-border/80 hover:border-violet-500/40 hover:shadow-xs transition-all cursor-pointer space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+                          STAGE 03
+                        </span>
+                        <ClipboardList className="h-4 w-4 text-violet-600 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <h4 className="font-bold text-xs text-foreground">Differentiated Drills</h4>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Allocates Tier 1–3 worksheets & support circles.
+                      </p>
+                    </div>
+
+                    {/* Step 4 */}
+                    <div
+                      onClick={() => setActiveTab("students")}
+                      className="group relative p-3.5 rounded-2xl bg-card border border-border/80 hover:border-emerald-500/40 hover:shadow-xs transition-all cursor-pointer space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          STAGE 04
+                        </span>
+                        <Award className="h-4 w-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <h4 className="font-bold text-xs text-foreground">Mastery Verification</h4>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Child reassessed; gap marked resolved upon mastery.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -4419,14 +4554,61 @@ export default function CentralPortal() {
         {/* TAB 7: VISUAL ANALYTICS */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
+            {/* Analytical Performance KPIs */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="glass-panel p-4 space-y-1.5 shadow-2xs">
+                <span className="label-overline">Remediation Mastery</span>
+                <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-heading">
+                  {activeGapsCount + resolvedGapsCount > 0
+                    ? `${Math.round((resolvedGapsCount / (activeGapsCount + resolvedGapsCount)) * 100)}%`
+                    : "100%"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">{resolvedGapsCount} verified FLN remediations</p>
+              </div>
+
+              <div className="glass-panel p-4 space-y-1.5 shadow-2xs">
+                <span className="label-overline">Active Intervention Load</span>
+                <p className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 font-heading">
+                  {activeGapsCount}
+                </p>
+                <p className="text-[11px] text-muted-foreground">FLN competency improvement needs</p>
+              </div>
+
+              <div className="glass-panel p-4 space-y-1.5 shadow-2xs">
+                <span className="label-overline">Support Circles</span>
+                <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 font-heading">
+                  {aggregatedGaps.length}
+                </p>
+                <p className="text-[11px] text-muted-foreground">Homogeneous remedial peer groups</p>
+              </div>
+
+              <div className="glass-panel p-4 space-y-1.5 shadow-2xs">
+                <span className="label-overline">Practice Intensity</span>
+                <p className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 font-heading">
+                  {allocatedWorksheets.length}
+                </p>
+                <p className="text-[11px] text-muted-foreground">Differentiated drill sheets deployed</p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Pie Chart: Subject Distribution */}
-              <div className="glass-panel p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <PieChartIcon className="h-4 w-4 text-primary" />
-                  <h3 className="font-heading font-bold text-base text-foreground">
-                    {language === "hi" ? "FLN विषय वितरण" : "FLN Learning Gap Distribution"}
-                  </h3>
+              <div className="glass-panel p-6 space-y-4 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <PieChartIcon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-heading font-extrabold text-base text-foreground">
+                        {language === "hi" ? "FLN विषय वितरण" : "FLN Learning Gap Distribution"}
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground">Literacy vs. Numeracy balance</p>
+                    </div>
+                  </div>
+                  <span className="badge-pill bg-primary/10 text-primary border border-primary/20 text-[10px] font-mono">
+                    Subject Split
+                  </span>
                 </div>
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -4435,55 +4617,70 @@ export default function CentralPortal() {
                         data={subjectDistributionData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={5}
+                        innerRadius={65}
+                        outerRadius={92}
+                        paddingAngle={6}
                         dataKey="value"
                       >
                         {subjectDistributionData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
                         ))}
                       </Pie>
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: "12px" }} />
+                      <Tooltip content={<CustomAnalyticsTooltip />} />
+                      <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
               {/* Bar Chart: Grade-wise Comparison */}
-              <div className="glass-panel p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" />
-                  <h3 className="font-heading font-bold text-base text-foreground">
-                    {language === "hi" ? "कक्षा-वार साक्षरता व संख्यात्मकता" : "Class 1–3 Gap Breakdown"}
-                  </h3>
+              <div className="glass-panel p-6 space-y-4 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <BarChart3 className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-heading font-extrabold text-base text-foreground">
+                        {language === "hi" ? "कक्षा-वार साक्षरता व संख्यात्मकता" : "Cohort Grade Breakdown"}
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground">Comparative needs across Classes 1–3</p>
+                    </div>
+                  </div>
+                  <span className="badge-pill bg-primary/10 text-primary border border-primary/20 text-[10px] font-mono">
+                    Grades 1–3
+                  </span>
                 </div>
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={gradeBreakdownData}>
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                      <XAxis dataKey="grade" stroke="#888888" fontSize={12} />
-                      <YAxis stroke="#888888" fontSize={12} />
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: "12px" }} />
-                      <Bar dataKey="Reading" fill={CHART_COLORS.rose} radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Numeracy" fill={CHART_COLORS.amber} radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Resolved" fill={CHART_COLORS.emerald} radius={[4, 4, 0, 0]} />
+                    <BarChart data={gradeBreakdownData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+                      <XAxis dataKey="grade" stroke="#888888" fontSize={11} tickLine={false} />
+                      <YAxis stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
+                      <Tooltip content={<CustomAnalyticsTooltip />} />
+                      <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
+                      <Bar dataKey="Reading" fill={CHART_COLORS.rose} radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="Numeracy" fill={CHART_COLORS.amber} radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="Resolved" fill={CHART_COLORS.emerald} radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
             </div>
 
-            {/* Top Common Gaps Bar Chart */}
-            <div className="glass-panel p-6 space-y-4">
+            {/* Top Common Gaps Horizontal Bar Chart */}
+            <div className="glass-panel p-6 space-y-4 shadow-2xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                  <h3 className="font-heading font-bold text-base text-foreground">
-                    {language === "hi" ? "शीर्ष 6 सामान्य सीखने के अंतराल" : "Top Identified Competency Gaps"}
-                  </h3>
+                  <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-extrabold text-base text-foreground">
+                      {language === "hi" ? "शीर्ष 6 सामान्य सीखने के अंतराल" : "Top Identified Competency Needs"}
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">High-density competencies for whole-class instruction</p>
+                  </div>
                 </div>
                 <span className="text-xs text-muted-foreground font-mono">
                   Aggregated across all classes
@@ -4492,12 +4689,12 @@ export default function CentralPortal() {
 
               <div className="h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={topCompetencyData} layout="vertical" margin={{ left: 30, right: 30 }}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis type="number" stroke="#888888" fontSize={12} />
-                    <YAxis dataKey="name" type="category" stroke="#888888" fontSize={11} width={180} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill={CHART_COLORS.primary} radius={[0, 4, 4, 0]} name="Affected Students" />
+                  <BarChart data={topCompetencyData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+                    <XAxis type="number" stroke="#888888" fontSize={11} tickLine={false} />
+                    <YAxis dataKey="name" type="category" stroke="#888888" fontSize={11} width={180} tickLine={false} axisLine={false} />
+                    <Tooltip content={<CustomAnalyticsTooltip />} />
+                    <Bar dataKey="count" fill={CHART_COLORS.primary} radius={[0, 6, 6, 0]} name="Affected Students" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
