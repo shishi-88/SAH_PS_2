@@ -8,6 +8,7 @@ import {
   Users,
   LayoutDashboard,
   ArrowLeftRight,
+  LogOut,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     navigate("/mobile/login");
   };
 
+  const handleLogout = async () => {
+    await switchTeacher();
+    navigate("/mobile/login");
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className={cn("sticky top-0 z-30 border-b border-border bg-background", printHide && "print:hidden")}>
@@ -82,21 +88,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
 
             {/* Active Teacher Badge + Switch Trigger */}
-            <div className="flex items-center gap-1 rounded-full border border-border/80 bg-card py-1 pl-1.5 pr-2 shadow-2xs">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
-                {teacherName.charAt(0).toUpperCase()}
-              </span>
-              <span className="text-xs font-semibold text-foreground max-w-[70px] sm:max-w-[120px] truncate" title={teacherName}>
-                {teacherName}
-              </span>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 rounded-full border border-border/80 bg-card py-1 pl-1.5 pr-2 shadow-2xs">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+                  {teacherName.charAt(0).toUpperCase()}
+                </span>
+                <span className="text-xs font-semibold text-foreground max-w-[65px] sm:max-w-[110px] truncate" title={teacherName}>
+                  {teacherName}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSwitchTeacher}
+                  className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/10 transition-colors ml-0.5"
+                  title={t(language, "header.switchTeacher")}
+                >
+                  <ArrowLeftRight className="h-3 w-3" />
+                  <span className="hidden md:inline">{t(language, "header.switchTeacher")}</span>
+                </button>
+              </div>
+
+              {/* Explicit Mobile Teacher Logout Button */}
               <button
                 type="button"
-                onClick={handleSwitchTeacher}
-                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/10 transition-colors ml-0.5"
-                title={t(language, "header.switchTeacher")}
+                onClick={handleLogout}
+                className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 px-2.5 py-1 text-xs font-semibold shadow-2xs transition-colors"
+                title={t(language, "header.logout")}
               >
-                <ArrowLeftRight className="h-3 w-3" />
-                <span className="hidden sm:inline">{t(language, "header.switchTeacher")}</span>
+                <LogOut className="h-3 w-3" />
+                <span className="hidden sm:inline">{t(language, "header.logout")}</span>
               </button>
             </div>
           </div>

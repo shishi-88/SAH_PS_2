@@ -11,6 +11,7 @@ import {
   Users2,
   Bell,
   Sparkles,
+  LogOut,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -78,19 +79,34 @@ export default function Index() {
               {classroom.name}
             </h1>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              await switchTeacher();
-              navigate("/mobile/login");
-            }}
-            className="rounded-2xl border-border bg-card hover:bg-muted text-xs font-semibold gap-1.5 shrink-0 shadow-2xs h-9 px-3"
-            title={t(language, "header.switchTeacher")}
-          >
-            <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />
-            <span>{t(language, "header.switchTeacher")}</span>
-          </Button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await switchTeacher();
+                navigate("/mobile/login");
+              }}
+              className="rounded-2xl border-border bg-card hover:bg-muted text-xs font-semibold gap-1.5 shadow-2xs h-9 px-3"
+              title={t(language, "header.switchTeacher")}
+            >
+              <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />
+              <span>{t(language, "header.switchTeacher")}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await switchTeacher();
+                navigate("/mobile/login");
+              }}
+              className="rounded-2xl border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 text-xs font-semibold gap-1.5 shadow-2xs h-9 px-2.5"
+              title={t(language, "header.logout")}
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span>{t(language, "header.logout")}</span>
+            </Button>
+          </div>
         </div>
 
         {/* 1-Click Teacher Switch Demo Bar */}

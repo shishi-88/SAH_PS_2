@@ -3055,14 +3055,14 @@ export default function CentralPortal() {
                 <span className="text-[10px] text-muted-foreground/70 font-mono">({portalUser?.role || "Admin"})</span>
               </span>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={handlePortalSignOut}
-                className="h-9 px-3 rounded-full text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 font-semibold gap-1.5 shadow-2xs transition-colors"
-                title="Sign out of Central Portal"
+                className="h-9 px-3.5 rounded-full text-xs text-rose-700 bg-rose-50 hover:bg-rose-100 hover:text-rose-800 border border-rose-200 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 font-semibold gap-1.5 shadow-2xs transition-colors"
+                title="Log out of Central Portal"
               >
                 <LogOut className="h-3.5 w-3.5" />
-                <span>{language === "hi" ? "लॉग आउट" : "Sign Out"}</span>
+                <span>{language === "hi" ? "लॉग आउट" : "Log Out"}</span>
               </Button>
             </div>
           </div>
