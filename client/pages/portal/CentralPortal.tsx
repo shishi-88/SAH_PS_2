@@ -53,7 +53,11 @@ import {
   Upload,
   FileUp,
   FolderUp,
+  FolderArchive,
+  FolderDown,
+  FileDown,
 } from "lucide-react";
+import JSZip from "jszip";
 import {
   ResponsiveContainer,
   BarChart,
@@ -584,6 +588,17 @@ export default function CentralPortal() {
     message: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Worksheet Bank & Allocation State
+  const [worksheetViewMode, setWorksheetViewMode] = useState<"allocations" | "templates" | "classes">("allocations");
+  const [worksheetClassFilter, setWorksheetClassFilter] = useState<string>("all");
+  const [worksheetGradeFilter, setWorksheetGradeFilter] = useState<string>("all");
+  const [worksheetStatusFilter, setWorksheetStatusFilter] = useState<"all" | "assigned" | "practiced">("all");
+  const [worksheetSearchQuery, setWorksheetSearchQuery] = useState("");
+  const [isAllocateWorksheetModalOpen, setIsAllocateWorksheetModalOpen] = useState(false);
+  const [allocateModalStudentId, setAllocateModalStudentId] = useState<string>("");
+  const [allocateModalTemplateId, setAllocateModalTemplateId] = useState<string>("");
+  const [isGeneratingZip, setIsGeneratingZip] = useState(false);
 
   const showNotification = (text: string, type: "success" | "info" | "error" = "success") => {
     setFeedbackMessage({ text, type });
@@ -1323,6 +1338,626 @@ export default function CentralPortal() {
         ? `समूह के सभी ${count} विद्यार्थियों के लिए व्यक्तिगत अभ्यास पत्रक आबंटित किए गए!`
         : `Allocated personalized practice worksheets for all ${count} students in this group!`
     );
+  };
+
+  const handleRemoveAllocatedWorksheet = (worksheetId: string) => {
+    setAllocatedWorksheets((prev) => prev.filter((w) => w.id !== worksheetId));
+    showNotification(
+      language === "hi" ? "अभ्यास पत्रक आबंटन हटाया गया" : "Worksheet allocation removed",
+      "info"
+    );
+  };
+
+  const handleOpenAllocateModal = (studentId?: string, templateId?: string) => {
+    setAllocateModalStudentId(studentId || students[0]?.id || "");
+    setAllocateModalTemplateId(templateId || WORKSHEET_TEMPLATES[0]?.id || "");
+    setIsAllocateWorksheetModalOpen(true);
+  };
+
+  const handleConfirmAllocateFromModal = (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetStudent = students.find((s) => s.id === allocateModalStudentId);
+    const targetTemplate = WORKSHEET_TEMPLATES.find((t) => t.id === allocateModalTemplateId);
+    if (!targetStudent || !targetTemplate) {
+      showNotification("Please select both a student and a worksheet template", "error");
+      return;
+    }
+
+    handleAllocateWorksheet(targetStudent, targetTemplate.gapTypeId, targetTemplate.tier, true);
+    setIsAllocateWorksheetModalOpen(false);
+  };
+
+  // Helper to generate a standalone, beautifully styled printable A4 HTML sheet
+  const generateWorksheetHtml = (
+    ws: WorksheetInstance,
+    student?: StudentEntity,
+    cls?: ClassEntity
+  ): string => {
+    const studentName = student?.name || "Pupil";
+    const rollNo = student?.rollNo || "01";
+    const className = cls?.name || `Class ${student?.grade || 1}`;
+    const dateStr = formatShortDate(ws.assignedAt);
+    const title = language === "hi" && ws.titleHi ? ws.titleHi : ws.title;
+    const focus = language === "hi" && ws.focusHi ? ws.focusHi : ws.focus;
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${studentName} - ${title} (Tier ${ws.tier})</title>
+<style>
+  @page { size: A4 portrait; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #0f172a;
+    background: #ffffff;
+    margin: 0;
+    padding: 20px;
+  }
+  .worksheet-card {
+    border: 2px solid #0f172a;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+    background: #ffffff;
+  }
+  .header {
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left h1 {
+    font-size: 18px;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+  }
+  .header-left p {
+    font-size: 11px;
+    color: #475569;
+    margin: 3px 0 0 0;
+  }
+  .tier-badge {
+    border: 2px solid #0f172a;
+    background: #f8fafc;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    font-family: monospace;
+    border-radius: 4px;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr;
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 16px 0;
+    font-size: 11px;
+  }
+  .meta-label { color: #64748b; font-size: 9px; text-transform: uppercase; font-family: monospace; }
+  .meta-val { font-weight: 700; color: #0f172a; font-size: 12px; margin-top: 1px; }
+  .focus-box {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    border-radius: 4px;
+  }
+  .focus-title { font-weight: 700; font-size: 13px; color: #1e3a8a; }
+  .focus-desc { font-size: 11px; color: #1e40af; margin-top: 2px; }
+  .items-list { display: flex; flex-direction: column; gap: 12px; }
+  .item-row {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #ffffff;
+  }
+  .item-prompt {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .item-num {
+    background: #0f172a;
+    color: #ffffff;
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 11px;
+    font-family: monospace;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .writing-area {
+    margin-top: 14px;
+    border-bottom: 1.5px dashed #94a3b8;
+    height: 38px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 4px 4px 4px;
+    font-size: 10px;
+    color: #94a3b8;
+    font-family: monospace;
+  }
+  .footer-grid {
+    margin-top: 24px;
+    border-top: 2px solid #0f172a;
+    padding-top: 14px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    font-size: 10px;
+    font-family: monospace;
+  }
+  .notes-line { border-bottom: 1px solid #cbd5e1; height: 24px; margin-top: 6px; }
+  @media print {
+    body { padding: 0; }
+    .worksheet-card { border: none; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="worksheet-card">
+  <div class="header">
+    <div class="header-left">
+      <h1>सहायक (SAHAYAK) FLN PRACTICE WORKSHEET</h1>
+      <p>Class 1–3 Foundational Literacy & Numeracy Skill Remediator</p>
+    </div>
+    <div class="tier-badge">TIER ${ws.tier} DRILL</div>
+  </div>
+
+  <div class="meta-grid">
+    <div>
+      <div class="meta-label">STUDENT NAME</div>
+      <div class="meta-val">${studentName}</div>
+    </div>
+    <div>
+      <div class="meta-label">CLASS / ROLL NO</div>
+      <div class="meta-val">${className} · #${rollNo}</div>
+    </div>
+    <div>
+      <div class="meta-label">DATE ALLOCATED</div>
+      <div class="meta-val">${dateStr}</div>
+    </div>
+  </div>
+
+  <div class="focus-box">
+    <div class="focus-title">${title}</div>
+    <div class="focus-desc">${focus}</div>
+  </div>
+
+  <div class="items-list">
+    ${ws.items
+      .map(
+        (it, idx) => `
+    <div class="item-row">
+      <div class="item-prompt">
+        <span class="item-num">${idx + 1}</span>
+        <span>${language === "hi" && it.promptHi ? it.promptHi : it.prompt}</span>
+      </div>
+      <div class="writing-area">
+        <span>Child Response / Tracing Area</span>
+        <span>[ Teacher Check: ___ / 1 ]</span>
+      </div>
+    </div>`
+      )
+      .join("")}
+  </div>
+
+  <div class="footer-grid">
+    <div>
+      <div>TEACHER OBSERVATION & NOTES:</div>
+      <div class="notes-line"></div>
+    </div>
+    <div>
+      <div>OUTCOME VERIFICATION:</div>
+      <div style="margin-top: 8px; display: flex; gap: 8px;">
+        <span>[ ] Pass</span>
+        <span>[ ] Advance</span>
+        <span>[ ] Repeat</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
+  };
+
+  // Helper to generate a multi-page combined HTML document with page breaks for printing whole class
+  const generateCombinedClassHtml = (
+    classItem: ClassEntity,
+    entries: Array<{ ws: WorksheetInstance; student: StudentEntity }>
+  ): string => {
+    const sheetsHtml = entries
+      .map(({ ws, student }) => {
+        const studentName = student.name;
+        const rollNo = student.rollNo;
+        const className = classItem.name;
+        const dateStr = formatShortDate(ws.assignedAt);
+        const title = language === "hi" && ws.titleHi ? ws.titleHi : ws.title;
+        const focus = language === "hi" && ws.focusHi ? ws.focusHi : ws.focus;
+
+        return `
+<div class="worksheet-card page">
+  <div class="header">
+    <div class="header-left">
+      <h1>सहायक (SAHAYAK) FLN PRACTICE WORKSHEET</h1>
+      <p>Class 1–3 Foundational Literacy & Numeracy Skill Remediator</p>
+    </div>
+    <div class="tier-badge">TIER ${ws.tier} DRILL</div>
+  </div>
+
+  <div class="meta-grid">
+    <div>
+      <div class="meta-label">STUDENT NAME</div>
+      <div class="meta-val">${studentName}</div>
+    </div>
+    <div>
+      <div class="meta-label">CLASS / ROLL NO</div>
+      <div class="meta-val">${className} · #${rollNo}</div>
+    </div>
+    <div>
+      <div class="meta-label">DATE ALLOCATED</div>
+      <div class="meta-val">${dateStr}</div>
+    </div>
+  </div>
+
+  <div class="focus-box">
+    <div class="focus-title">${title}</div>
+    <div class="focus-desc">${focus}</div>
+  </div>
+
+  <div class="items-list">
+    ${ws.items
+      .map(
+        (it, idx) => `
+    <div class="item-row">
+      <div class="item-prompt">
+        <span class="item-num">${idx + 1}</span>
+        <span>${language === "hi" && it.promptHi ? it.promptHi : it.prompt}</span>
+      </div>
+      <div class="writing-area">
+        <span>Child Response / Tracing Area</span>
+        <span>[ Teacher Check: ___ / 1 ]</span>
+      </div>
+    </div>`
+      )
+      .join("")}
+  </div>
+
+  <div class="footer-grid">
+    <div>
+      <div>TEACHER OBSERVATION & NOTES:</div>
+      <div class="notes-line"></div>
+    </div>
+    <div>
+      <div>OUTCOME VERIFICATION:</div>
+      <div style="margin-top: 8px; display: flex; gap: 8px;">
+        <span>[ ] Pass</span>
+        <span>[ ] Advance</span>
+        <span>[ ] Repeat</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="page-break"></div>`;
+      })
+      .join("\n");
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${classItem.name} - Complete Practice Worksheet Batch</title>
+<style>
+  @page { size: A4 portrait; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #0f172a;
+    background: #e2e8f0;
+    margin: 0;
+    padding: 20px;
+  }
+  .page {
+    background: #ffffff;
+    border: 2px solid #0f172a;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 800px;
+    margin: 0 auto 30px auto;
+  }
+  .header {
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left h1 {
+    font-size: 18px;
+    margin: 0;
+    font-weight: 800;
+  }
+  .header-left p {
+    font-size: 11px;
+    color: #475569;
+    margin: 3px 0 0 0;
+  }
+  .tier-badge {
+    border: 2px solid #0f172a;
+    background: #f8fafc;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    font-family: monospace;
+    border-radius: 4px;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr;
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 16px 0;
+    font-size: 11px;
+  }
+  .meta-label { color: #64748b; font-size: 9px; text-transform: uppercase; font-family: monospace; }
+  .meta-val { font-weight: 700; color: #0f172a; font-size: 12px; }
+  .focus-box {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    border-radius: 4px;
+  }
+  .focus-title { font-weight: 700; font-size: 13px; color: #1e3a8a; }
+  .focus-desc { font-size: 11px; color: #1e40af; margin-top: 2px; }
+  .items-list { display: flex; flex-direction: column; gap: 12px; }
+  .item-row {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #ffffff;
+  }
+  .item-prompt {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .item-num {
+    background: #0f172a;
+    color: #ffffff;
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 11px;
+    font-family: monospace;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .writing-area {
+    margin-top: 14px;
+    border-bottom: 1.5px dashed #94a3b8;
+    height: 38px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 4px 4px 4px;
+    font-size: 10px;
+    color: #94a3b8;
+    font-family: monospace;
+  }
+  .footer-grid {
+    margin-top: 24px;
+    border-top: 2px solid #0f172a;
+    padding-top: 14px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    font-size: 10px;
+    font-family: monospace;
+  }
+  .notes-line { border-bottom: 1px solid #cbd5e1; height: 24px; margin-top: 6px; }
+  .page-break { page-break-after: always; break-after: page; height: 0; }
+  @media print {
+    body { padding: 0; background: #ffffff; }
+    .page { border: none; padding: 0; margin: 0; }
+  }
+</style>
+</head>
+<body>
+  ${sheetsHtml}
+</body>
+</html>`;
+  };
+
+  // Download all allocated practice sheets for a specific classroom as a complete ZIP package
+  const handleDownloadClassWorksheetsZip = async (targetClassId: string) => {
+    try {
+      setIsGeneratingZip(true);
+      const targetClass = classes.find((c) => c.id === targetClassId);
+      const targetClassName = targetClass ? targetClass.name : "All_Classrooms";
+      const cleanClassName = targetClassName.replace(/[^a-zA-Z0-9_-]/g, "_");
+
+      // Filter students in the target class (or all students if 'all')
+      const targetStudents =
+        targetClassId === "all"
+          ? students
+          : students.filter((s) => s.classId === targetClassId);
+
+      if (targetStudents.length === 0) {
+        showNotification("No students found in the selected classroom.", "info");
+        return;
+      }
+
+      // Collect all allocated worksheets for these students
+      const studentMap = new Map(targetStudents.map((s) => [s.id, s]));
+      const relevantWorksheets = allocatedWorksheets.filter((w) =>
+        studentMap.has(w.studentId)
+      );
+
+      if (relevantWorksheets.length === 0) {
+        showNotification(
+          language === "hi"
+            ? `कक्षा '${targetClassName}' के किसी भी विद्यार्थी के पास अभी आबंटित अभ्यास पत्रक नहीं हैं।`
+            : `No practice worksheets are currently allocated for students in ${targetClassName}. Allocate some worksheets first!`,
+          "info"
+        );
+        return;
+      }
+
+      const zip = new JSZip();
+      const folder = zip.folder(`Worksheets_${cleanClassName}`);
+
+      const entries: Array<{ ws: WorksheetInstance; student: StudentEntity }> = [];
+
+      relevantWorksheets.forEach((ws) => {
+        const student = studentMap.get(ws.studentId)!;
+        entries.push({ ws, student });
+        const studentClass = classes.find((c) => c.id === student.classId);
+        const html = generateWorksheetHtml(ws, student, studentClass);
+        const cleanStudentName = student.name.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const cleanTitle = (ws.title || "Worksheet").replace(/[^a-zA-Z0-9_-]/g, "_");
+        const filename = `Roll${student.rollNo}_${cleanStudentName}_Tier${ws.tier}_${cleanTitle}.html`;
+        folder?.file(filename, html);
+      });
+
+      // Also create a combined master HTML file for 1-click batch printing
+      if (targetClass) {
+        const combinedHtml = generateCombinedClassHtml(targetClass, entries);
+        folder?.file(`00_ALL_${cleanClassName}_PRINT_BUNDLE.html`, combinedHtml);
+      } else {
+        const dummyClass: ClassEntity = {
+          id: "all",
+          name: "All Classrooms Batch",
+          gradeBand: "Class 1-3",
+          studentsPerDay: 5,
+          reassessmentDays: 14,
+          teacherId: "admin",
+          version: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        const combinedHtml = generateCombinedClassHtml(dummyClass, entries);
+        folder?.file(`00_ALL_STUDENTS_PRINT_BUNDLE.html`, combinedHtml);
+      }
+
+      // Manifest text file
+      let manifest = `=======================================================\n`;
+      manifest += `SAHAYAK FLN PRACTICE WORKSHEET CLASS BUNDLE\n`;
+      manifest += `Class: ${targetClassName}\n`;
+      manifest += `Generated: ${new Date().toLocaleString()}\n`;
+      manifest += `Total Allocated Sheets: ${relevantWorksheets.length}\n`;
+      manifest += `Students Covered: ${new Set(relevantWorksheets.map((w) => w.studentId)).size} of ${targetStudents.length}\n`;
+      manifest += `=======================================================\n\n`;
+      manifest += `STUDENT ALLOCATION SUMMARY:\n`;
+      entries.forEach(({ ws, student }, idx) => {
+        manifest += `${idx + 1}. [Roll #${student.rollNo}] ${student.name} (Class ${student.grade}) - Tier ${ws.tier}: ${ws.title} (${ws.status})\n`;
+      });
+      manifest += `\nPRINTING INSTRUCTIONS:\n`;
+      manifest += `1. Double-click '00_ALL_*_PRINT_BUNDLE.html' in your web browser and press Ctrl+P (or Cmd+P) to print all sheets at once.\n`;
+      manifest += `2. Or open individual student .html files to inspect or print individually.\n`;
+      folder?.file("CLASS_ALLOCATION_SUMMARY.txt", manifest);
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Sahayak_Worksheets_${cleanClassName}_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showNotification(
+        language === "hi"
+          ? `${targetClassName} के लिए ${relevantWorksheets.length} अभ्यास पत्रकों की ZIP फ़ाइल डाउनलोड हो गई!`
+          : `Downloaded ZIP containing ${relevantWorksheets.length} practice sheets for ${targetClassName}!`,
+        "success"
+      );
+    } catch (err: any) {
+      console.error("ZIP Generation error:", err);
+      showNotification("Failed to generate ZIP archive: " + (err?.message || "Unknown error"), "error");
+    } finally {
+      setIsGeneratingZip(false);
+    }
+  };
+
+  // 1-Click Print all allocated worksheets for a classroom
+  const handlePrintClassWorksheets = (targetClassId: string) => {
+    const targetClass = classes.find((c) => c.id === targetClassId) || {
+      id: "all",
+      name: "All Classrooms Batch",
+      gradeBand: "Class 1-3",
+      studentsPerDay: 5,
+      reassessmentDays: 14,
+      teacherId: "admin",
+      version: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const targetStudents =
+      targetClassId === "all"
+        ? students
+        : students.filter((s) => s.classId === targetClassId);
+
+    const studentMap = new Map(targetStudents.map((s) => [s.id, s]));
+    const relevantWorksheets = allocatedWorksheets.filter((w) =>
+      studentMap.has(w.studentId)
+    );
+
+    if (relevantWorksheets.length === 0) {
+      showNotification(
+        language === "hi"
+          ? "इस कक्षा के किसी भी विद्यार्थी के पास अभ्यास पत्रक नहीं हैं।"
+          : "No practice worksheets are allocated for this classroom.",
+        "info"
+      );
+      return;
+    }
+
+    const entries = relevantWorksheets.map((ws) => ({
+      ws,
+      student: studentMap.get(ws.studentId)!,
+    }));
+
+    const fullHtml = generateCombinedClassHtml(targetClass, entries);
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(fullHtml);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 400);
+    } else {
+      showNotification("Popup blocked! Please allow popups to print class worksheets.", "error");
+    }
   };
 
   // CSV / JSON Exports
@@ -2637,126 +3272,676 @@ export default function CentralPortal() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: WORKSHEET BANK & ALLOCATION CENTER */}
+        {/* TAB 3: TARGETED WORKSHEET BANK & PUPIL ALLOCATION HUB */}
         {/* ========================================================================= */}
         {activeTab === "worksheets" && (
-          <div className="glass-panel p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="font-heading font-bold text-xl text-foreground">
-                  {language === "hi" ? "लक्षित अभ्यास पत्रक बैंक एवं आबंटन केंद्र" : "Targeted Practice Worksheet Bank & Allocation"}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Pre-built tiered practice templates matched to diagnosed gaps. Allocate directly to pupils or support circles.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full text-xs gap-1.5"
-                  onClick={() => window.print()}
-                >
-                  <Printer className="h-3.5 w-3.5" />
-                  Print Active Worksheets
-                </Button>
-              </div>
-            </div>
-
-            {/* Templates Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {WORKSHEET_TEMPLATES.map((tmpl) => {
-                const meta = getGapType(tmpl.gapTypeId);
-                return (
-                  <div
-                    key={tmpl.id}
-                    className="p-5 rounded-3xl border border-border bg-card space-y-3.5 shadow-2xs hover:border-primary/50 transition-all flex flex-col justify-between"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`badge-pill text-[9px] ${
-                            tmpl.subject === "reading"
-                              ? "bg-rose-50 text-rose-800 border border-rose-200"
-                              : "bg-amber-50 text-amber-800 border border-amber-200"
-                          }`}
-                        >
-                          {tmpl.subject.toUpperCase()} · TIER {tmpl.tier}
-                        </span>
-                        <span className="text-[10px] font-mono text-muted-foreground">
-                          Grades: {tmpl.grades.join(", ")}
-                        </span>
-                      </div>
-
-                      <h3 className="font-heading font-bold text-base text-foreground leading-tight">
-                        {language === "hi" && tmpl.titleHi ? tmpl.titleHi : tmpl.title}
-                      </h3>
-
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {language === "hi" && tmpl.focusHi ? tmpl.focusHi : tmpl.focus}
-                      </p>
-
-                      <div className="p-2.5 rounded-xl bg-muted/40 text-[11px] text-foreground space-y-1 font-mono">
-                        <span className="text-[10px] text-muted-foreground block font-sans font-bold">
-                          Sample Exercise ({tmpl.items.length} items):
-                        </span>
-                        <p className="truncate">
-                          1. {language === "hi" && tmpl.itemsHi ? tmpl.itemsHi[0]?.prompt : tmpl.items[0]?.prompt}
-                        </p>
-                      </div>
+          <div className="space-y-6">
+            {/* Header & Batch Controls */}
+            <div className="glass-panel p-6 space-y-5">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-10 w-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <ClipboardList className="h-5 w-5" strokeWidth={2.2} />
                     </div>
-
-                    <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full text-xs h-8 px-3 border-border font-medium flex-1 gap-1"
-                        onClick={() => {
-                          // Quick preview template with generic mock
-                          const mockInstance: WorksheetInstance = {
-                            id: createId("ws"),
-                            studentId: students[0]?.id || "stu_demo",
-                            gapRecordId: "gap_demo",
-                            templateId: tmpl.id,
-                            assignedAt: new Date().toISOString(),
-                            tier: tmpl.tier,
-                            status: "assigned",
-                            title: language === "hi" && tmpl.titleHi ? tmpl.titleHi : tmpl.title,
-                            focus: language === "hi" && tmpl.focusHi ? tmpl.focusHi : tmpl.focus,
-                            items: language === "hi" && tmpl.itemsHi ? tmpl.itemsHi : tmpl.items,
-                          };
-                          setPreviewWorksheet(mockInstance);
-                        }}
-                      >
-                        <Eye className="h-3 w-3" />
-                        Preview Sheet
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        className="rounded-full text-xs h-8 px-3.5 bg-primary text-primary-foreground font-semibold flex-1 gap-1"
-                        onClick={() => {
-                          if (students.length === 0) {
-                            showNotification("Please enroll a student or seed demo data first", "info");
-                            return;
-                          }
-                          // Allocate to first student who has this gap or first student in matching grade
-                          const matchStudent =
-                            students.find((s) => tmpl.grades.includes(s.grade as Grade)) || students[0];
-                          if (matchStudent) {
-                            handleAllocateWorksheet(matchStudent, tmpl.gapTypeId, tmpl.tier, true);
-                          }
-                        }}
-                      >
-                        <Plus className="h-3 w-3" />
-                        Allocate
-                      </Button>
+                    <div>
+                      <h2 className="font-heading font-bold text-xl text-foreground">
+                        {language === "hi"
+                          ? "लक्षित अभ्यास पत्रक बैंक एवं विद्यार्थी आबंटन हब"
+                          : "Targeted Worksheet Bank & Pupil Allocation Hub"}
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "hi"
+                          ? "विद्यार्थियों को आबंटित अभ्यास पत्रक देखें, टियर 1–3 ड्रिल ट्रैक करें और पूरी कक्षा के अभ्यास पत्रक एक साथ ZIP या प्रिंट में डाउनलोड करें।"
+                          : "Inspect what is allocated to each student, manage practice progress, and batch download all worksheets for any classroom in a ready-to-print ZIP archive."}
+                      </p>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+
+                {/* Batch Action Bar */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Classroom Selector for Batch Action */}
+                  <select
+                    className="rounded-full border border-border bg-card px-3.5 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs font-medium"
+                    value={worksheetClassFilter}
+                    onChange={(e) => setWorksheetClassFilter(e.target.value)}
+                    title="Select Classroom for Batch Download"
+                  >
+                    <option value="all">All Classrooms (Combined Batch)</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Batch Download ZIP Button */}
+                  <Button
+                    size="sm"
+                    className="rounded-full text-xs h-9 px-4 bg-primary text-primary-foreground font-bold gap-1.5 shadow-xs hover:bg-primary/90"
+                    onClick={() => handleDownloadClassWorksheetsZip(worksheetClassFilter)}
+                    disabled={isGeneratingZip}
+                  >
+                    {isGeneratingZip ? (
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FolderArchive className="h-3.5 w-3.5" />
+                    )}
+                    {language === "hi"
+                      ? "कक्षा अभ्यास पत्रक डाउनलोड करें (.ZIP)"
+                      : "Download Class Sheets (.ZIP)"}
+                  </Button>
+
+                  {/* Batch Print Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs h-9 px-3.5 gap-1.5 border-border shadow-2xs"
+                    onClick={() => handlePrintClassWorksheets(worksheetClassFilter)}
+                    title="Print All Worksheets for Selected Class"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    {language === "hi" ? "कक्षा प्रिंट करें" : "Print Class Sheets"}
+                  </Button>
+
+                  {/* Allocate Modal Trigger */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs h-9 px-3.5 gap-1.5 bg-secondary/10 text-secondary hover:bg-secondary/20 border-secondary/30 font-bold"
+                    onClick={() => handleOpenAllocateModal()}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    {language === "hi" ? "+ नया आबंटन" : "+ Allocate to Pupil"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* KPI Mini Row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                <div className="bg-card p-3 rounded-2xl border border-border">
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">
+                    Total Allocated Sheets
+                  </span>
+                  <span className="font-heading font-bold text-xl text-primary">
+                    {allocatedWorksheets.length} Active
+                  </span>
+                </div>
+
+                <div className="bg-card p-3 rounded-2xl border border-border">
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">
+                    Pupils Practicing
+                  </span>
+                  <span className="font-heading font-bold text-xl text-foreground">
+                    {new Set(allocatedWorksheets.map((w) => w.studentId)).size} of {students.length}
+                  </span>
+                </div>
+
+                <div className="bg-card p-3 rounded-2xl border border-border">
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">
+                    Completed / Practiced
+                  </span>
+                  <span className="font-heading font-bold text-xl text-emerald-600">
+                    {allocatedWorksheets.filter((w) => w.status === "practiced").length} Drills
+                  </span>
+                </div>
+
+                <div className="bg-card p-3 rounded-2xl border border-border">
+                  <span className="text-muted-foreground block text-[10px] uppercase font-mono">
+                    Catalog Bank
+                  </span>
+                  <span className="font-heading font-bold text-xl text-secondary">
+                    {WORKSHEET_TEMPLATES.length} Templates
+                  </span>
+                </div>
+              </div>
+
+              {/* View Mode Switcher Pills */}
+              <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setWorksheetViewMode("allocations")}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    worksheetViewMode === "allocations"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-card"
+                  }`}
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  {language === "hi"
+                    ? "विद्यार्थीवार आबंटन (Student Allocations)"
+                    : "Student Allocations"}{" "}
+                  ({allocatedWorksheets.length})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setWorksheetViewMode("templates")}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    worksheetViewMode === "templates"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-card"
+                  }`}
+                >
+                  <BookOpen className="h-3.5 w-3.5" />
+                  {language === "hi"
+                    ? "अभ्यास पत्रक टेम्पलेट बैंक"
+                    : "Worksheet Template Bank"}{" "}
+                  ({WORKSHEET_TEMPLATES.length})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setWorksheetViewMode("classes")}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    worksheetViewMode === "classes"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-card"
+                  }`}
+                >
+                  <FolderArchive className="h-3.5 w-3.5" />
+                  {language === "hi"
+                    ? "कक्षा पैकेज एवं बैच ज़िप (.ZIP)"
+                    : "Class Bundles & Batch ZIP"}{" "}
+                  ({classes.length})
+                </button>
+              </div>
             </div>
+
+            {/* ========================================================================= */}
+            {/* SUB-VIEW 1: BY STUDENT ALLOCATIONS (Know exactly what each student has) */}
+            {/* ========================================================================= */}
+            {worksheetViewMode === "allocations" && (
+              <div className="space-y-4">
+                {/* Filters */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search pupil by name or roll..."
+                      className="w-full rounded-full border border-border bg-card pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                      value={worksheetSearchQuery}
+                      onChange={(e) => setWorksheetSearchQuery(e.target.value)}
+                    />
+                  </div>
+
+                  <select
+                    className="rounded-full border border-border bg-card px-3.5 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                    value={worksheetClassFilter}
+                    onChange={(e) => setWorksheetClassFilter(e.target.value)}
+                  >
+                    <option value="all">All Classrooms</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="rounded-full border border-border bg-card px-3.5 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                    value={worksheetGradeFilter}
+                    onChange={(e) => setWorksheetGradeFilter(e.target.value)}
+                  >
+                    <option value="all">All Grades (1, 2, 3)</option>
+                    <option value="1">Class 1</option>
+                    <option value="2">Class 2</option>
+                    <option value="3">Class 3</option>
+                  </select>
+
+                  <select
+                    className="rounded-full border border-border bg-card px-3.5 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                    value={worksheetStatusFilter}
+                    onChange={(e) => setWorksheetStatusFilter(e.target.value as any)}
+                  >
+                    <option value="all">All Pupils (Allocated & Pending)</option>
+                    <option value="assigned">Has Active Practice Sheets</option>
+                    <option value="practiced">Has Practiced / Completed</option>
+                  </select>
+                </div>
+
+                {/* Pupil Allocation Cards */}
+                {(() => {
+                  const filteredPupils = students.filter((s) => {
+                    const matchesSearch =
+                      !worksheetSearchQuery.trim() ||
+                      s.name.toLowerCase().includes(worksheetSearchQuery.toLowerCase()) ||
+                      s.rollNo.includes(worksheetSearchQuery.trim());
+                    const matchesClass =
+                      worksheetClassFilter === "all" || s.classId === worksheetClassFilter;
+                    const matchesGrade =
+                      worksheetGradeFilter === "all" || String(s.grade) === worksheetGradeFilter;
+
+                    const studentSheets = allocatedWorksheets.filter((w) => w.studentId === s.id);
+                    let matchesStatus = true;
+                    if (worksheetStatusFilter === "assigned") {
+                      matchesStatus = studentSheets.length > 0;
+                    } else if (worksheetStatusFilter === "practiced") {
+                      matchesStatus = studentSheets.some((w) => w.status === "practiced");
+                    }
+
+                    return matchesSearch && matchesClass && matchesGrade && matchesStatus;
+                  });
+
+                  if (filteredPupils.length === 0) {
+                    return (
+                      <div className="glass-panel p-12 text-center space-y-3">
+                        <ClipboardList className="h-10 w-10 text-muted-foreground mx-auto opacity-50" />
+                        <h3 className="font-heading font-bold text-base text-foreground">
+                          No students found matching current filters
+                        </h3>
+                        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                          Try resetting your search or classroom filter, or allocate a practice sheet to a pupil.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      {filteredPupils.map((s) => {
+                        const studentSheets = allocatedWorksheets.filter((w) => w.studentId === s.id);
+                        const studentClass = classes.find((c) => c.id === s.classId);
+                        const activeGaps = learningGaps.filter(
+                          (g) => g.studentId === s.id && g.status === "active"
+                        );
+
+                        return (
+                          <div
+                            key={s.id}
+                            className="glass-panel p-5 space-y-4 hover:border-primary/40 transition-colors shadow-2xs"
+                          >
+                            {/* Student Header Bar */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+                              <div className="flex items-center gap-3">
+                                <StudentAvatar
+                                  name={s.name}
+                                  tint={s.avatarTint || "teal"}
+                                  size="md"
+                                />
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-heading font-bold text-base text-foreground">
+                                      {s.name}
+                                    </h3>
+                                    <span className="font-mono text-xs font-bold text-muted-foreground">
+                                      Roll #{s.rollNo}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                    <span>Class {s.grade}</span>
+                                    <span>·</span>
+                                    <span>{studentClass?.name || "Classroom"}</span>
+                                    {activeGaps.length > 0 && (
+                                      <>
+                                        <span>·</span>
+                                        <span className="text-rose-600 font-semibold">
+                                          {activeGaps.length} FLN Gaps
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="badge-pill bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+                                  {studentSheets.length}{" "}
+                                  {studentSheets.length === 1 ? "Worksheet" : "Worksheets"}
+                                </span>
+
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-full text-xs h-8 px-3 gap-1.5 font-bold"
+                                  onClick={() => handleOpenAllocateModal(s.id)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                  {language === "hi" ? "शीट जोड़ें" : "+ Allocate Sheet"}
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Allocated Sheets List */}
+                            {studentSheets.length === 0 ? (
+                              <div className="p-4 rounded-2xl bg-muted/20 border border-dashed border-border flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground italic">
+                                  {language === "hi"
+                                    ? "इस विद्यार्थी के पास अभी कोई अभ्यास पत्रक आबंटित नहीं है।"
+                                    : "No practice worksheets allocated yet for this pupil."}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="rounded-full text-xs h-7 text-primary hover:underline font-bold"
+                                  onClick={() => handleOpenAllocateModal(s.id)}
+                                >
+                                  + Assign Practice Now
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {studentSheets.map((ws) => (
+                                  <div
+                                    key={ws.id}
+                                    className="p-3.5 rounded-2xl border border-border bg-card space-y-2.5 shadow-2xs flex flex-col justify-between"
+                                  >
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center justify-between">
+                                        <span className="badge-pill bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold">
+                                          TIER {ws.tier}
+                                        </span>
+                                        <span
+                                          className={`badge-pill text-[9px] font-bold ${
+                                            ws.status === "practiced"
+                                              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                              : "bg-amber-50 text-amber-800 border border-amber-200"
+                                          }`}
+                                        >
+                                          {ws.status === "practiced"
+                                            ? "✓ Practiced"
+                                            : "Assigned"}
+                                        </span>
+                                      </div>
+
+                                      <h4 className="font-heading font-bold text-xs text-foreground line-clamp-1">
+                                        {ws.title}
+                                      </h4>
+
+                                      <p className="text-[11px] text-muted-foreground line-clamp-2">
+                                        {ws.focus}
+                                      </p>
+
+                                      <span className="text-[10px] text-muted-foreground font-mono block">
+                                        Assigned: {formatShortDate(ws.assignedAt)}
+                                      </span>
+                                    </div>
+
+                                    {/* Item Actions */}
+                                    <div className="pt-2 border-t border-border flex items-center justify-between gap-1.5">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="rounded-full text-[11px] h-7 px-2.5 border-border font-medium flex-1 gap-1"
+                                        onClick={() => setPreviewWorksheet(ws)}
+                                        title="Preview and Print this student worksheet"
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                        Preview
+                                      </Button>
+
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className={`rounded-full text-[11px] h-7 px-2 font-bold ${
+                                          ws.status === "practiced"
+                                            ? "text-muted-foreground"
+                                            : "text-emerald-700 hover:bg-emerald-50"
+                                        }`}
+                                        onClick={() => handleMarkWorksheetPracticed(ws.id)}
+                                        title="Toggle Practiced status"
+                                      >
+                                        {ws.status === "practiced" ? "Re-assign" : "Done"}
+                                      </Button>
+
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="rounded-full text-xs h-7 w-7 p-0 text-muted-foreground hover:text-rose-600 shrink-0"
+                                        onClick={() => handleRemoveAllocatedWorksheet(ws.id)}
+                                        title="Remove allocation"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* SUB-VIEW 2: WORKSHEET TEMPLATE CATALOG (With pupil allocation counts) */}
+            {/* ========================================================================= */}
+            {worksheetViewMode === "templates" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    {WORKSHEET_TEMPLATES.length} Foundational Practice Templates
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Matches NIPUN Bharat FLN competency learning outcomes
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {WORKSHEET_TEMPLATES.map((tmpl) => {
+                    // Find which students are currently allocated this template
+                    const allocatedStudents = students.filter((s) =>
+                      allocatedWorksheets.some(
+                        (w) => w.studentId === s.id && (w.templateId === tmpl.id || w.title === tmpl.title)
+                      )
+                    );
+
+                    return (
+                      <div
+                        key={tmpl.id}
+                        className="p-5 rounded-3xl border border-border bg-card space-y-3.5 shadow-2xs hover:border-primary/50 transition-all flex flex-col justify-between"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`badge-pill text-[9px] font-bold ${
+                                tmpl.subject === "reading"
+                                  ? "bg-rose-50 text-rose-800 border border-rose-200"
+                                  : "bg-amber-50 text-amber-800 border border-amber-200"
+                              }`}
+                            >
+                              {tmpl.subject.toUpperCase()} · TIER {tmpl.tier}
+                            </span>
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                              Grades: {tmpl.grades.join(", ")}
+                            </span>
+                          </div>
+
+                          <h3 className="font-heading font-bold text-base text-foreground leading-tight">
+                            {language === "hi" && tmpl.titleHi ? tmpl.titleHi : tmpl.title}
+                          </h3>
+
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {language === "hi" && tmpl.focusHi ? tmpl.focusHi : tmpl.focus}
+                          </p>
+
+                          {/* Currently Allocated To Chip */}
+                          <div className="pt-1">
+                            <span className="text-[10px] font-bold text-muted-foreground block uppercase font-mono mb-1">
+                              Currently Allocated to:
+                            </span>
+                            {allocatedStudents.length === 0 ? (
+                              <span className="text-[11px] text-muted-foreground italic">
+                                Not currently allocated to any pupil
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="badge-pill bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold">
+                                  {allocatedStudents.length}{" "}
+                                  {allocatedStudents.length === 1 ? "Pupil" : "Pupils"}
+                                </span>
+                                {allocatedStudents.slice(0, 3).map((st) => (
+                                  <span
+                                    key={st.id}
+                                    className="badge-pill bg-muted text-foreground text-[10px] font-medium"
+                                  >
+                                    {st.name.split(" ")[0]} (#{st.rollNo})
+                                  </span>
+                                ))}
+                                {allocatedStudents.length > 3 && (
+                                  <span className="text-[10px] text-muted-foreground font-mono">
+                                    +{allocatedStudents.length - 3} more
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-full text-xs h-8 px-3 border-border font-medium flex-1 gap-1"
+                            onClick={() => {
+                              const mockInstance: WorksheetInstance = {
+                                id: createId("ws"),
+                                studentId: students[0]?.id || "stu_demo",
+                                gapRecordId: "gap_demo",
+                                templateId: tmpl.id,
+                                assignedAt: new Date().toISOString(),
+                                tier: tmpl.tier,
+                                status: "assigned",
+                                title: language === "hi" && tmpl.titleHi ? tmpl.titleHi : tmpl.title,
+                                focus: language === "hi" && tmpl.focusHi ? tmpl.focusHi : tmpl.focus,
+                                items: language === "hi" && tmpl.itemsHi ? tmpl.itemsHi : tmpl.items,
+                              };
+                              setPreviewWorksheet(mockInstance);
+                            }}
+                          >
+                            <Eye className="h-3 w-3" />
+                            Preview
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            className="rounded-full text-xs h-8 px-3.5 bg-primary text-primary-foreground font-semibold flex-1 gap-1"
+                            onClick={() => handleOpenAllocateModal(undefined, tmpl.id)}
+                          >
+                            <Plus className="h-3 w-3" />
+                            Allocate to Pupil
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* SUB-VIEW 3: CLASS BUNDLES & DOWNLOAD ZIP */}
+            {/* ========================================================================= */}
+            {worksheetViewMode === "classes" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Classroom Practice Bundles & Multi-Worksheet Archives
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Download complete ZIP folders containing individual and combined printable HTML files
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {classes.map((cls) => {
+                    const classPupils = students.filter((s) => s.classId === cls.id);
+                    const classPupilIds = new Set(classPupils.map((s) => s.id));
+                    const classWorksheets = allocatedWorksheets.filter((w) =>
+                      classPupilIds.has(w.studentId)
+                    );
+                    const pupilsWithSheets = classPupils.filter((s) =>
+                      allocatedWorksheets.some((w) => w.studentId === s.id)
+                    );
+
+                    return (
+                      <div
+                        key={cls.id}
+                        className="glass-panel p-6 space-y-4 flex flex-col justify-between hover:border-primary/50 transition-all shadow-xs"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <span className="badge-pill bg-secondary/15 text-secondary border border-secondary/25 text-[10px] font-bold uppercase">
+                                {cls.gradeBand || "Primary"}
+                              </span>
+                              <h3 className="font-heading font-bold text-lg text-foreground mt-1.5">
+                                {cls.name}
+                              </h3>
+                            </div>
+                            <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                              <School className="h-5 w-5" />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-center text-xs pt-1">
+                            <div className="bg-card p-2.5 rounded-xl border border-border">
+                              <div className="font-mono font-bold text-base text-foreground">
+                                {classPupils.length}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">Enrolled Pupils</div>
+                            </div>
+                            <div className="bg-card p-2.5 rounded-xl border border-border">
+                              <div className="font-mono font-bold text-base text-primary">
+                                {classWorksheets.length}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">Allocated Sheets</div>
+                            </div>
+                          </div>
+
+                          <div className="text-xs text-muted-foreground pt-1 space-y-1">
+                            <p>
+                              <span className="font-bold text-foreground">
+                                {pupilsWithSheets.length} of {classPupils.length}
+                              </span>{" "}
+                              students have practice materials ready.
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Package includes: Individual student HTML sheets + 1-click master printable bundle.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="space-y-2 pt-3 border-t border-border">
+                          <Button
+                            className="w-full rounded-2xl text-xs font-bold gap-2 py-2.5 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
+                            onClick={() => handleDownloadClassWorksheetsZip(cls.id)}
+                            disabled={isGeneratingZip || classWorksheets.length === 0}
+                          >
+                            {isGeneratingZip ? (
+                              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <FolderArchive className="h-3.5 w-3.5" />
+                            )}
+                            {language === "hi"
+                              ? "इस कक्षा की ZIP डाउनलोड करें"
+                              : "Download Class ZIP (.zip)"}
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            className="w-full rounded-2xl text-xs font-medium gap-2 py-2 border-border"
+                            onClick={() => handlePrintClassWorksheets(cls.id)}
+                            disabled={classWorksheets.length === 0}
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                            {language === "hi" ? "कक्षा के सभी पत्रक प्रिंट करें" : "Print All Worksheets"}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -4539,6 +5724,103 @@ export default function CentralPortal() {
                 className="rounded-full text-xs px-5 bg-primary text-primary-foreground font-semibold"
               >
                 {editingClass ? "Save Classroom" : "Create Classroom"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 5: ALLOCATE WORKSHEET TO PUPIL */}
+      {/* ========================================================================= */}
+      {isAllocateWorksheetModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <form
+            onSubmit={handleConfirmAllocateFromModal}
+            className="bg-card border border-border rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95"
+          >
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-heading font-bold text-lg text-foreground flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-primary" />
+                {language === "hi" ? "विद्यार्थी को अभ्यास पत्रक आबंटित करें" : "Allocate Worksheet to Pupil"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAllocateWorksheetModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground text-sm font-mono"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-foreground block">Select Pupil *</label>
+                <select
+                  className="w-full rounded-2xl border border-border bg-background px-3.5 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                  value={allocateModalStudentId}
+                  onChange={(e) => setAllocateModalStudentId(e.target.value)}
+                >
+                  {students.map((s) => {
+                    const c = classes.find((cl) => cl.id === s.classId);
+                    return (
+                      <option key={s.id} value={s.id}>
+                        {s.name} (Roll #{s.rollNo} · Class {s.grade} - {c?.name || "Classroom"})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-foreground block">Select Worksheet Drill Template *</label>
+                <select
+                  className="w-full rounded-2xl border border-border bg-background px-3.5 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                  value={allocateModalTemplateId}
+                  onChange={(e) => setAllocateModalTemplateId(e.target.value)}
+                >
+                  {WORKSHEET_TEMPLATES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      [{t.subject.toUpperCase()} · TIER {t.tier}] {t.title} (Grades: {t.grades.join(",")})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Preview Box of selected template */}
+              {(() => {
+                const selectedTmpl = WORKSHEET_TEMPLATES.find((t) => t.id === allocateModalTemplateId);
+                if (!selectedTmpl) return null;
+                return (
+                  <div className="p-3 bg-muted/40 rounded-2xl border border-border space-y-1 text-xs">
+                    <span className="font-bold text-foreground block">
+                      Focus: {selectedTmpl.focus}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground block font-mono">
+                      Includes {selectedTmpl.items.length} guided practice exercises
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="pt-3 border-t border-border flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full text-xs px-4"
+                onClick={() => setIsAllocateWorksheetModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="rounded-full text-xs px-5 bg-primary text-primary-foreground font-semibold gap-1.5"
+              >
+                <Check className="h-3.5 w-3.5" />
+                Allocate Now
               </Button>
             </div>
           </form>
