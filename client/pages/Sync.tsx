@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   CloudUpload,
+  Download,
   History,
   LogOut,
   RefreshCw,
@@ -52,6 +53,40 @@ export default function Sync() {
     .sort()
     .pop();
 
+  const handleExportOfflineData = () => {
+    const pkg = {
+      format: "sahayak-offline-bundle",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      source: "mobile-teacher-app",
+      teacher: session
+        ? {
+            id: session.teacherId,
+            name: session.teacherName,
+            schoolName: session.schoolName,
+          }
+        : {
+            name: snapshot.classroom.teacherLabel,
+            schoolName: snapshot.classroom.schoolName,
+          },
+      classroom: snapshot.classroom,
+      students: snapshot.students,
+      gaps: snapshot.gaps,
+      assessments: snapshot.assessments,
+      worksheets: snapshot.worksheets,
+      syncQueue: snapshot.syncQueue,
+    };
+    const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sahayak_offline_data_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <section className="flex items-center gap-3">
@@ -79,6 +114,33 @@ export default function Sync() {
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           {t(language, storageNoteKey)}
         </p>
+      </section>
+
+      {/* Offline Data Export for Central Portal Ingestion */}
+      <section className="space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <Download className="h-5 w-5" strokeWidth={2.1} />
+          </span>
+          <div>
+            <h2 className="font-heading text-base font-bold">
+              {language === "hi" ? "ऑफ़लाइन डेटा निर्यात करें" : "Export Offline Package"}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {language === "hi"
+                ? "बिना इंटरनेट के वेब पोर्टल में आयात करने के लिए JSON फ़ाइल डाउनलोड करें"
+                : "Save your classroom records to a JSON file to import into the Web Portal offline"}
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          className="w-full rounded-full gap-2 border-border"
+          onClick={handleExportOfflineData}
+        >
+          <Download className="h-4 w-4" />
+          {language === "hi" ? "ऑफ़लाइन पैकेज डाउनलोड करें (.json)" : "Download Offline Package (.json)"}
+        </Button>
       </section>
 
       <section className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-soft">

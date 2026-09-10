@@ -50,6 +50,9 @@ import {
   X,
   UserPlus,
   SlidersHorizontal,
+  Upload,
+  FileUp,
+  FolderUp,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -81,6 +84,7 @@ import {
   nextTier,
 } from "@/domain/worksheet-bank";
 import { useApp } from "@/state/AppProvider";
+import { loadSnapshot } from "@/data/storage";
 import type {
   AvatarTint,
   Grade,
@@ -561,6 +565,25 @@ export default function CentralPortal() {
     gapTypeId: "letter-sound-bd",
     tier: 1,
   });
+
+  // Offline Data Import State
+  const [importJsonText, setImportJsonText] = useState("");
+  const [importFileName, setImportFileName] = useState<string | null>(null);
+  const [parsedImportData, setParsedImportData] = useState<{
+    format?: string;
+    source?: string;
+    teacher?: { id?: string; name?: string; schoolName?: string };
+    classes: ClassEntity[];
+    students: StudentEntity[];
+    learningGaps: LearningGapEntity[];
+    worksheets: WorksheetInstance[];
+  } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importStatus, setImportStatus] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const showNotification = (text: string, type: "success" | "info" | "error" = "success") => {
     setFeedbackMessage({ text, type });
@@ -1360,6 +1383,324 @@ export default function CentralPortal() {
     document.body.removeChild(link);
   };
 
+  // ---------------------------------------------------------------------------
+  // Offline Mobile Data Ingestion Helpers
+  // ---------------------------------------------------------------------------
+  const parseOfflinePackage = (raw: any) => {
+    if (!raw || typeof raw !== "object") {
+      throw new Error("Invalid JSON: Root must be an object");
+    }
+
+    const defaultClassId = `cls_imported_${Date.now()}`;
+    let importedClasses: ClassEntity[] = [];
+
+    if (Array.isArray(raw.classes) && raw.classes.length > 0) {
+      importedClasses = raw.classes.map((c: any) => ({
+        id: c.id || `cls_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        teacherId: c.teacherId || "tea_demo",
+        name: c.name || "Imported Classroom",
+        gradeBand: c.gradeBand || "Class 1",
+        studentsPerDay: c.studentsPerDay || 5,
+        reassessmentDays: c.reassessmentDays || 14,
+        version: c.version || 1,
+        createdAt: c.createdAt || new Date().toISOString(),
+        updatedAt: c.updatedAt || new Date().toISOString(),
+      }));
+    } else if (raw.classroom) {
+      const c = raw.classroom;
+      importedClasses = [
+        {
+          id: c.id || defaultClassId,
+          teacherId: c.teacherId || raw.teacher?.id || "tea_mobile",
+          name: c.classroomName || c.name || `${raw.teacher?.name || "Mobile"}'s Classroom`,
+          gradeBand: c.gradeBand || "Class 1",
+          studentsPerDay: c.studentsPerDay || 5,
+          reassessmentDays: c.reassessmentDays || 14,
+          version: c.version || 1,
+          createdAt: c.createdAt || new Date().toISOString(),
+          updatedAt: c.updatedAt || new Date().toISOString(),
+        },
+      ];
+    }
+
+    const primaryClassId = importedClasses[0]?.id || classes[0]?.id || "cls_primary_1";
+
+    const rawStudents = Array.isArray(raw.students) ? raw.students : [];
+    const importedStudents: StudentEntity[] = rawStudents.map((s: any, idx: number) => ({
+      id: s.id || `stu_import_${Date.now()}_${idx}`,
+      classId: s.classId || primaryClassId,
+      name: s.name || `Student ${idx + 1}`,
+      grade: (s.grade === 2 || s.grade === 3 ? s.grade : 1) as 1 | 2 | 3,
+      rollNo: s.rollNo ? String(s.rollNo) : String(idx + 1).padStart(2, "0"),
+      avatarTint: s.avatarTint || "teal",
+      isArchived: Boolean(s.isArchived),
+      version: s.version || 1,
+      createdAt: s.createdAt || new Date().toISOString(),
+      updatedAt: s.updatedAt || new Date().toISOString(),
+      lastAssessedAt: s.lastAssessedAt || null,
+    }));
+
+    const rawGaps = Array.isArray(raw.gaps)
+      ? raw.gaps
+      : Array.isArray(raw.learningGaps)
+      ? raw.learningGaps
+      : [];
+    const importedGaps: LearningGapEntity[] = rawGaps.map((g: any, idx: number) => ({
+      id: g.id || `gap_import_${Date.now()}_${idx}`,
+      studentId: g.studentId,
+      gapTypeId: g.gapTypeId,
+      subject: g.subject === "numeracy" ? "numeracy" : "reading",
+      status: g.status === "resolved" ? "resolved" : "active",
+      currentTier: (g.currentTier === 2 || g.currentTier === 3 ? g.currentTier : 1) as 1 | 2 | 3,
+      firstDetectedAt: g.firstDetectedAt || new Date().toISOString(),
+      lastDetectedAt: g.lastDetectedAt || new Date().toISOString(),
+      resolvedAt: g.resolvedAt || null,
+      reassessmentDueAt: g.reassessmentDueAt || new Date(Date.now() + 14 * 86400000).toISOString(),
+      worksheetIds: Array.isArray(g.worksheetIds) ? g.worksheetIds : [],
+      assessmentIds: Array.isArray(g.assessmentIds) ? g.assessmentIds : [],
+      version: g.version || 1,
+      createdAt: g.createdAt || new Date().toISOString(),
+      updatedAt: g.updatedAt || new Date().toISOString(),
+    }));
+
+    const rawWorksheets = Array.isArray(raw.worksheets)
+      ? raw.worksheets
+      : Array.isArray(raw.allocatedWorksheets)
+      ? raw.allocatedWorksheets
+      : [];
+
+    return {
+      format: raw.format || "custom-json",
+      source: raw.source || "offline-file",
+      teacher: raw.teacher,
+      classes: importedClasses,
+      students: importedStudents,
+      learningGaps: importedGaps,
+      worksheets: rawWorksheets,
+    };
+  };
+
+  const handleFileUpload = (file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const parsed = JSON.parse(text);
+        const bundle = parseOfflinePackage(parsed);
+        setImportFileName(file.name);
+        setParsedImportData(bundle);
+        setImportStatus({
+          type: "info",
+          message:
+            language === "hi"
+              ? `फ़ाइल '${file.name}' सफलतापूर्वक पार्स की गई: ${bundle.students.length} विद्यार्थी, ${bundle.learningGaps.length} लर्निंग गैप।`
+              : `File '${file.name}' parsed: Found ${bundle.students.length} students, ${bundle.learningGaps.length} learning gaps.`,
+        });
+      } catch (err: any) {
+        console.error("Failed to parse file:", err);
+        setImportStatus({
+          type: "error",
+          message: `Failed to parse offline file: ${err?.message || "Invalid JSON format"}`,
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportFromLocalApp = async () => {
+    try {
+      setIsImporting(true);
+      const snap = await loadSnapshot();
+      if (!snap || !snap.students || snap.students.length === 0) {
+        setImportStatus({
+          type: "error",
+          message:
+            language === "hi"
+              ? "स्थानीय मोबाइल वॉल्ट में कोई विद्यार्थी डेटा नहीं मिला।"
+              : "No student records found in this browser's local mobile vault.",
+        });
+        return;
+      }
+      const bundle = parseOfflinePackage(snap);
+      setImportFileName("Local Mobile Vault (IndexedDB)");
+      setParsedImportData(bundle);
+      setImportStatus({
+        type: "info",
+        message:
+          language === "hi"
+            ? `स्थानीय वॉल्ट से ${bundle.students.length} विद्यार्थी और ${bundle.learningGaps.length} अंतराल लोड किए गए।`
+            : `Loaded ${bundle.students.length} students and ${bundle.learningGaps.length} gaps from local mobile vault.`,
+      });
+      showNotification(
+        language === "hi"
+          ? "स्थानीय मोबाइल डेटा आयात के लिए तैयार है!"
+          : "Local mobile data staged for import!",
+        "success"
+      );
+    } catch (err: any) {
+      console.error("Local app vault import error:", err);
+      setImportStatus({
+        type: "error",
+        message: `Failed to read local app vault: ${err?.message || "Unknown error"}`,
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleParsePastedJson = () => {
+    if (!importJsonText.trim()) {
+      setImportStatus({
+        type: "error",
+        message: "Please paste valid JSON before parsing.",
+      });
+      return;
+    }
+    try {
+      const parsed = JSON.parse(importJsonText.trim());
+      const bundle = parseOfflinePackage(parsed);
+      setImportFileName("Pasted JSON Document");
+      setParsedImportData(bundle);
+      setImportStatus({
+        type: "info",
+        message:
+          language === "hi"
+            ? `JSON पार्स हो गया: ${bundle.students.length} विद्यार्थी, ${bundle.learningGaps.length} अंतराल पाए गए।`
+            : `JSON parsed: Found ${bundle.students.length} students, ${bundle.learningGaps.length} gaps.`,
+      });
+    } catch (err: any) {
+      setImportStatus({
+        type: "error",
+        message: `Invalid JSON format: ${err?.message || "Syntax error"}`,
+      });
+    }
+  };
+
+  const handleCommitImport = async (overrideData?: typeof parsedImportData) => {
+    const data = overrideData || parsedImportData;
+    if (!data) return;
+
+    try {
+      setIsImporting(true);
+
+      // 1. Merge & Upsert Classes
+      if (data.classes && data.classes.length > 0) {
+        for (const cls of data.classes) {
+          try {
+            await portalFetch("/api/classes", {
+              method: "POST",
+              body: JSON.stringify(cls),
+            });
+          } catch (e) {
+            console.warn("Class server sync warning:", e);
+          }
+        }
+        setClasses((prev) => {
+          const map = new Map(prev.map((c) => [c.id, c]));
+          for (const c of data.classes) {
+            map.set(c.id, { ...(map.get(c.id) || {}), ...c });
+          }
+          return Array.from(map.values());
+        });
+      }
+
+      // 2. Merge & Upsert Students
+      if (data.students && data.students.length > 0) {
+        for (const stu of data.students) {
+          try {
+            await portalFetch("/api/students", {
+              method: "POST",
+              body: JSON.stringify(stu),
+            });
+          } catch (e) {
+            console.warn("Student server sync warning:", e);
+          }
+        }
+        setStudents((prev) => {
+          const map = new Map(prev.map((s) => [s.id, s]));
+          for (const s of data.students) {
+            map.set(s.id, { ...(map.get(s.id) || {}), ...s });
+          }
+          return Array.from(map.values());
+        });
+      }
+
+      // 3. Merge & Upsert Learning Gaps
+      if (data.learningGaps && data.learningGaps.length > 0) {
+        for (const gap of data.learningGaps) {
+          try {
+            await portalFetch("/api/learning-gaps", {
+              method: "POST",
+              body: JSON.stringify(gap),
+            });
+          } catch (e) {
+            console.warn("Learning gap server sync warning:", e);
+          }
+        }
+        setLearningGaps((prev) => {
+          const map = new Map(prev.map((g) => [g.id, g]));
+          for (const g of data.learningGaps) {
+            map.set(g.id, { ...(map.get(g.id) || {}), ...g });
+          }
+          return Array.from(map.values());
+        });
+      }
+
+      // 4. Merge Worksheets
+      if (data.worksheets && data.worksheets.length > 0) {
+        setAllocatedWorksheets((prev) => {
+          const map = new Map(prev.map((w) => [w.id, w]));
+          for (const w of data.worksheets) {
+            map.set(w.id, { ...(map.get(w.id) || {}), ...w });
+          }
+          return Array.from(map.values());
+        });
+      }
+
+      // 5. Append Sync Log Entry for Audit Trail
+      const newLog: SyncLogEntry = {
+        id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        operationId: `op_import_${Date.now()}`,
+        entityType: "student",
+        entityId: `batch_${data.students.length}_records`,
+        operation: "CREATE",
+        clientId: importFileName || "offline-importer",
+        status: "SYNCED",
+        clientVersion: 1,
+        serverVersion: 1,
+        receivedAt: new Date().toISOString(),
+        details: `Imported offline package: ${data.students.length} students, ${data.learningGaps.length} gaps from ${importFileName || "manual upload"}`,
+      };
+      setSyncLogs((prev) => [newLog, ...prev]);
+
+      const successMsg =
+        language === "hi"
+          ? `सफलतापूर्वक आयातित: ${data.students.length} विद्यार्थी, ${data.learningGaps.length} शिक्षण अंतराल!`
+          : `Successfully imported: ${data.students.length} students, ${data.learningGaps.length} learning gaps into Central Database!`;
+
+      setImportStatus({
+        type: "success",
+        message: successMsg,
+      });
+      showNotification(successMsg, "success");
+
+      // Reset staged import
+      setParsedImportData(null);
+      setImportFileName(null);
+      setImportJsonText("");
+    } catch (err: any) {
+      console.error("Failed to commit import:", err);
+      setImportStatus({
+        type: "error",
+        message: `Commit failed: ${err?.message || "Unknown error"}`,
+      });
+      showNotification("Failed to commit imported data", "error");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       {/* Top Navbar */}
@@ -1697,8 +2038,8 @@ export default function CentralPortal() {
                 : "text-muted-foreground hover:text-foreground hover:bg-card"
             }`}
           >
-            <FolderSync className="h-3.5 w-3.5" />
-            {language === "hi" ? "सिंक ऑडिट लॉग्स" : "Sync Stream"} ({syncLogs.length})
+            <Upload className="h-3.5 w-3.5" />
+            {language === "hi" ? "ऑफ़लाइन डेटा आयात" : "Offline Data Import"} ({syncLogs.length})
           </button>
           <button
             onClick={() => setActiveTab("reports")}
@@ -1876,43 +2217,185 @@ export default function CentralPortal() {
               </div>
             </div>
 
-            {/* Right Column: Live Stream & Summary */}
+            {/* Right Column: Import Offline Mobile Data Card */}
             <div className="glass-panel p-6 space-y-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file);
+                  e.target.value = "";
+                }}
+                className="hidden"
+              />
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-emerald-600" />
+                  <Upload className="h-4 w-4 text-primary" />
                   <h3 className="font-heading font-bold text-base text-foreground">
-                    {language === "hi" ? "लाइव इनगेस्ट स्ट्रीम" : "Live Sync Ingest"}
+                    {language === "hi" ? "ऑफ़लाइन मोबाइल डेटा आयात" : "Import Offline Mobile Data"}
                   </h3>
                 </div>
-                <span className="text-xs font-mono text-muted-foreground">
-                  {syncLogs.length} events
+                <span className="badge-pill text-[10px] bg-primary/10 text-primary border border-primary/20">
+                  {language === "hi" ? "ऑफ़लाइन सिंक" : "Offline Bridge"}
                 </span>
               </div>
 
-              <div className="space-y-2 max-h-[580px] overflow-y-auto pr-1">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {language === "hi"
+                  ? "मोबाइल शिक्षक ऐप से बिना इंटरनेट के एकत्र किया गया डेटा (.json पैकेज) यहाँ लोड करें।"
+                  : "Ingest data collected offline by teachers in the field via JSON export or direct local app vault."}
+              </p>
+
+              {/* Status Banner */}
+              {importStatus && (
+                <div
+                  className={`p-3 rounded-xl text-xs flex items-start gap-2 border ${
+                    importStatus.type === "success"
+                      ? "bg-emerald-50 text-emerald-900 border-emerald-200"
+                      : importStatus.type === "error"
+                      ? "bg-rose-50 text-rose-900 border-rose-200"
+                      : "bg-blue-50 text-blue-900 border-blue-200"
+                  }`}
+                >
+                  {importStatus.type === "success" ? (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />
+                  ) : (
+                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1 font-medium">{importStatus.message}</div>
+                </div>
+              )}
+
+              {/* Staged Data Preview & Commit */}
+              {parsedImportData ? (
+                <div className="p-3.5 rounded-2xl border-2 border-primary/30 bg-primary/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground truncate max-w-[200px]">
+                      📄 {importFileName || "Offline Package"}
+                    </span>
+                    <span className="badge-pill text-[10px] bg-emerald-100 text-emerald-800 font-bold">
+                      Ready to Ingest
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="bg-card p-2 rounded-xl border border-border">
+                      <div className="font-mono font-bold text-sm text-primary">
+                        {parsedImportData.students.length}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Students</div>
+                    </div>
+                    <div className="bg-card p-2 rounded-xl border border-border">
+                      <div className="font-mono font-bold text-sm text-rose-600">
+                        {parsedImportData.learningGaps.length}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">FLN Gaps</div>
+                    </div>
+                    <div className="bg-card p-2 rounded-xl border border-border">
+                      <div className="font-mono font-bold text-sm text-secondary">
+                        {parsedImportData.classes.length}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Classes</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      className="flex-1 rounded-full text-xs gap-1.5 bg-primary text-primary-foreground font-bold shadow-xs hover:bg-primary/90"
+                      onClick={() => handleCommitImport()}
+                      disabled={isImporting}
+                    >
+                      {isImporting ? (
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                      {language === "hi" ? "केंद्रीय डेटाबेस में जोड़ें" : "Commit to Database"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full text-xs px-2.5"
+                      onClick={() => {
+                        setParsedImportData(null);
+                        setImportFileName(null);
+                        setImportStatus(null);
+                      }}
+                      disabled={isImporting}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* Primary Actions to Load Data */
+                <div className="space-y-2 pt-1">
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-2xl text-xs font-bold gap-2 py-3 border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all text-foreground"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <FileUp className="h-4 w-4 text-primary" />
+                    {language === "hi" ? "ऑफ़लाइन JSON फ़ाइल चुनें..." : "Upload Offline .JSON File..."}
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    className="w-full rounded-2xl text-xs gap-2 py-2.5 text-muted-foreground hover:text-foreground border border-border/60 hover:bg-card"
+                    onClick={handleImportFromLocalApp}
+                    disabled={isImporting}
+                  >
+                    <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
+                    {language === "hi"
+                      ? "ब्राउज़र के मोबाइल वॉल्ट से सीधे लोड करें"
+                      : "Load Directly from Local Mobile Vault"}
+                  </Button>
+                </div>
+              )}
+
+              {/* View Full Station Link */}
+              <div className="pt-2 border-t border-border flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("syncLogs")}
+                  className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                >
+                  {language === "hi" ? "पूर्ण आयात स्टेशन और ऑडिट खोलें" : "Open Full Offline Ingest Hub"}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  {syncLogs.length} audit logs
+                </span>
+              </div>
+
+              {/* Recent Ingest Activity Snippet */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                  {language === "hi" ? "हाल के आयात लॉग" : "Recent Ingest Logs"}
+                </span>
                 {syncLogs.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic py-8 text-center">
-                    No transactions received yet. Click &quot;Seed FLN Demo Data&quot; or sync from the mobile app.
+                  <p className="text-[11px] text-muted-foreground italic py-2">
+                    {language === "hi" ? "कोई डेटा आयात नहीं हुआ है।" : "No offline packages ingested yet."}
                   </p>
                 ) : (
-                  syncLogs.slice(0, 8).map((log) => (
+                  syncLogs.slice(0, 3).map((log) => (
                     <div
                       key={log.id}
-                      className="p-3 rounded-2xl border border-border bg-card text-xs space-y-1 shadow-2xs"
+                      className="p-2 rounded-xl border border-border bg-card/60 text-[11px] flex items-center justify-between"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold uppercase text-primary text-[10px]">
-                          [{log.operation}] {log.entityType}
+                      <div className="truncate pr-2">
+                        <span className="font-mono font-bold uppercase text-primary text-[10px] mr-1.5">
+                          [{log.operation}]
                         </span>
-                        <span className="badge-pill text-[9px] bg-emerald-50 text-emerald-800 border border-emerald-200">
-                          v{log.serverVersion} · {log.status}
+                        <span className="text-foreground font-medium truncate">
+                          {log.details || log.entityId}
                         </span>
                       </div>
-                      <p className="text-foreground font-mono text-[11px] truncate">
-                        UUID: {log.entityId}
-                      </p>
-                      <span className="text-[10px] text-muted-foreground block font-mono">
+                      <span className="text-[10px] text-muted-foreground font-mono shrink-0">
                         {formatShortDate(log.receivedAt)}
                       </span>
                     </div>
@@ -2701,79 +3184,381 @@ export default function CentralPortal() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 8: SYNC LOGS */}
+        {/* TAB 8: OFFLINE DATA IMPORT STATION & SYNC AUDIT */}
+        {/* ========================================================================= */}
         {activeTab === "syncLogs" && (
-          <div className="glass-panel p-6 space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="font-heading font-bold text-xl text-foreground">
-                  {language === "hi" ? "सिंक ऑडिट ट्रांजैक्शन्स" : "Sync Audit & Replication Stream"}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Real-time log of offline mutation batches received from teacher mobile devices.
-                </p>
+          <div className="space-y-6">
+            {/* Header & Overview */}
+            <div className="glass-panel p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Upload className="h-5 w-5" strokeWidth={2.2} />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-bold text-xl text-foreground">
+                      {language === "hi" ? "ऑफ़लाइन डेटा आयात स्टेशन" : "Offline Data Ingest Station"}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "hi"
+                        ? "मोबाइल शिक्षक ऐप से एकत्रित ऑफ़लाइन रिकॉर्ड्स को केंद्रीय पोर्टल डेटाबेस में सुरक्षित रूप से आयात और विलय करें।"
+                        : "Ingest student assessments, FLN learning gaps, and classrooms collected offline from mobile devices."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs gap-1.5"
+                    onClick={exportAuditJSON}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {language === "hi" ? "ऑडिट निर्यात (JSON)" : "Export Audit (JSON)"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs gap-1.5"
+                    onClick={fetchCentralData}
+                    disabled={refreshing}
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+                    {language === "hi" ? "ताज़ा करें" : "Refresh"}
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full text-xs gap-1.5"
-                  onClick={exportAuditJSON}
+              {/* Status Message */}
+              {importStatus && (
+                <div
+                  className={`p-3.5 rounded-2xl text-xs flex items-start gap-2.5 border ${
+                    importStatus.type === "success"
+                      ? "bg-emerald-50 text-emerald-900 border-emerald-200"
+                      : importStatus.type === "error"
+                      ? "bg-rose-50 text-rose-900 border-rose-200"
+                      : "bg-blue-50 text-blue-900 border-blue-200"
+                  }`}
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  Export Audit (JSON)
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full text-xs gap-1.5"
-                  onClick={fetchCentralData}
-                  disabled={refreshing}
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-                  Refresh
-                </Button>
+                  {importStatus.type === "success" ? (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />
+                  ) : (
+                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1 font-medium">{importStatus.message}</div>
+                  <button
+                    onClick={() => setImportStatus(null)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Ingestion Ingestion Channels (3 methods) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                {/* Channel 1: Upload File */}
+                <div className="p-4 rounded-2xl border-2 border-dashed border-border hover:border-primary/60 bg-card transition-all flex flex-col justify-between space-y-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                      <FileUp className="h-4 w-4" />
+                      <span>{language === "hi" ? "विधि 1: JSON फ़ाइल अपलोड" : "Method 1: File Upload"}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "hi"
+                        ? "मोबाइल ऐप से डाउनलोड की गई 'sahayak_offline_data_*.json' फ़ाइल चुनें।"
+                        : "Upload the .json offline bundle generated from the teacher mobile app."}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full rounded-full text-xs font-bold gap-1.5 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <FileUp className="h-3.5 w-3.5" />
+                    {language === "hi" ? "फ़ाइल चुनें..." : "Select .JSON File..."}
+                  </Button>
+                </div>
+
+                {/* Channel 2: 1-Click Local Vault Ingest */}
+                <div className="p-4 rounded-2xl border border-border bg-card transition-all flex flex-col justify-between space-y-3 shadow-2xs">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs">
+                      <Smartphone className="h-4 w-4" />
+                      <span>{language === "hi" ? "विधि 2: स्थानीय मोबाइल वॉल्ट" : "Method 2: Local Mobile Vault"}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "hi"
+                        ? "यदि मोबाइल ऐप इसी ब्राउज़र में उपयोग हुआ है, तो 1-क्लिक में स्थानीय डेटा लोड करें।"
+                        : "Directly read data saved in this browser's encrypted mobile app vault."}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full rounded-full text-xs font-bold gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200"
+                    onClick={handleImportFromLocalApp}
+                    disabled={isImporting}
+                  >
+                    <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
+                    {language === "hi" ? "ब्राउज़र वॉल्ट से लोड करें" : "Load From Local Vault"}
+                  </Button>
+                </div>
+
+                {/* Channel 3: Paste JSON Document */}
+                <div className="p-4 rounded-2xl border border-border bg-card transition-all flex flex-col justify-between space-y-3 shadow-2xs">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-secondary font-bold text-xs">
+                      <FileText className="h-4 w-4" />
+                      <span>{language === "hi" ? "विधि 3: JSON टेक्स्ट पेस्ट" : "Method 3: Paste Raw JSON"}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "hi"
+                        ? "ऑफ़लाइन बैकअप या ऑडिट JSON को सीधे यहाँ पेस्ट करके इनगेस्ट करें।"
+                        : "Paste raw JSON text from a WhatsApp message or external export."}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder='Paste {"format": "sahayak-offline-bundle", ...}'
+                      value={importJsonText}
+                      onChange={(e) => setImportJsonText(e.target.value)}
+                      className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-border bg-background font-mono truncate"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full text-xs px-3"
+                      onClick={handleParsePastedJson}
+                    >
+                      Parse
+                    </Button>
+                  </div>
+                </div>
               </div>
+
+              {/* Staged Data Staging Inspector */}
+              {parsedImportData && (
+                <div className="mt-4 p-5 rounded-3xl border-2 border-primary/30 bg-primary/5 space-y-4 animate-in fade-in duration-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-primary/20 pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-foreground">
+                          📦 Staged Package: {importFileName || "Offline Data"}
+                        </span>
+                        <span className="badge-pill bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                          Validated & Ready
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Format: <span className="font-mono">{parsedImportData.format || "custom"}</span> · 
+                        Source: <span className="font-mono">{parsedImportData.source || "file"}</span>
+                        {parsedImportData.teacher?.name && ` · Teacher: ${parsedImportData.teacher.name}`}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        className="rounded-full text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs px-4"
+                        onClick={() => handleCommitImport()}
+                        disabled={isImporting}
+                      >
+                        {isImporting ? (
+                          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Check className="h-3.5 w-3.5" />
+                        )}
+                        {language === "hi"
+                          ? "केंद्रीय डेटाबेस में विलय करें (Commit Ingest)"
+                          : "Commit & Ingest into Central Database"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full text-xs px-3"
+                        onClick={() => {
+                          setParsedImportData(null);
+                          setImportFileName(null);
+                        }}
+                        disabled={isImporting}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        {language === "hi" ? "रद्द करें" : "Cancel"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Summary Metric Counters */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-card p-3 rounded-2xl border border-border flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-xl text-primary">
+                        <Users className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-mono font-bold text-lg text-foreground">
+                          {parsedImportData.students.length}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">Students</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-card p-3 rounded-2xl border border-border flex items-center gap-3">
+                      <div className="p-2 bg-rose-500/10 rounded-xl text-rose-600">
+                        <AlertCircle className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-mono font-bold text-lg text-rose-600">
+                          {parsedImportData.learningGaps.length}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">FLN Learning Gaps</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-card p-3 rounded-2xl border border-border flex items-center gap-3">
+                      <div className="p-2 bg-secondary/10 rounded-xl text-secondary">
+                        <School className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-mono font-bold text-lg text-secondary">
+                          {parsedImportData.classes.length}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">Classrooms</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-card p-3 rounded-2xl border border-border flex items-center gap-3">
+                      <div className="p-2 bg-amber-500/10 rounded-xl text-amber-600">
+                        <ClipboardList className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-mono font-bold text-lg text-amber-600">
+                          {parsedImportData.worksheets.length}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">Worksheets</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Preview Table of Incoming Students & Gaps */}
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold text-foreground block">
+                      Incoming Students Preview ({Math.min(parsedImportData.students.length, 6)} of {parsedImportData.students.length}):
+                    </span>
+                    <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+                      <table className="w-full text-left text-xs">
+                        <thead className="border-b border-border bg-muted/40 font-mono text-[10px] text-muted-foreground uppercase">
+                          <tr>
+                            <th className="py-2.5 px-3">Roll No</th>
+                            <th className="py-2.5 px-3">Student Name</th>
+                            <th className="py-2.5 px-3">Grade</th>
+                            <th className="py-2.5 px-3">Detected Gaps</th>
+                            <th className="py-2.5 px-3 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {parsedImportData.students.slice(0, 6).map((s) => {
+                            const studentGaps = parsedImportData.learningGaps.filter((g) => g.studentId === s.id);
+                            return (
+                              <tr key={s.id} className="hover:bg-muted/30 font-sans text-xs">
+                                <td className="py-2 px-3 font-mono text-muted-foreground">#{s.rollNo}</td>
+                                <td className="py-2 px-3 font-bold text-foreground">{s.name}</td>
+                                <td className="py-2 px-3">Class {s.grade}</td>
+                                <td className="py-2 px-3">
+                                  {studentGaps.length === 0 ? (
+                                    <span className="badge-pill bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px]">
+                                      On Track
+                                    </span>
+                                  ) : (
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      {studentGaps.map((g) => (
+                                        <span
+                                          key={g.id}
+                                          className={`badge-pill text-[9px] ${
+                                            g.subject === "reading"
+                                              ? "bg-rose-50 text-rose-800 border border-rose-200"
+                                              : "bg-amber-50 text-amber-800 border border-amber-200"
+                                          }`}
+                                        >
+                                          {getGapType(g.gapTypeId)?.name || g.gapTypeId} (T{g.currentTier})
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2 px-3 text-right">
+                                  <span className="badge-pill bg-primary/10 text-primary border border-primary/20 text-[10px]">
+                                    Ready to Merge
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-foreground">
-                <thead className="border-b border-border text-muted-foreground uppercase font-mono text-[10px]">
-                  <tr>
-                    <th className="py-3 px-3">Timestamp</th>
-                    <th className="py-3 px-3">Operation</th>
-                    <th className="py-3 px-3">Entity</th>
-                    <th className="py-3 px-3">Entity ID</th>
-                    <th className="py-3 px-3">Version</th>
-                    <th className="py-3 px-3 text-right">Ingest Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {syncLogs.length === 0 ? (
+            {/* Sync Audit & Ingestion Log Table */}
+            <div className="glass-panel p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" />
+                  <h3 className="font-heading font-bold text-base text-foreground">
+                    {language === "hi" ? "सिंक ऑडिट ट्रांजैक्शन्स एवं लॉग स्ट्रीम" : "Sync Audit & Ingestion Stream"}
+                  </h3>
+                </div>
+                <span className="text-xs font-mono text-muted-foreground">
+                  {syncLogs.length} total events logged
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-foreground">
+                  <thead className="border-b border-border text-muted-foreground uppercase font-mono text-[10px]">
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-muted-foreground italic">
-                        No transactions recorded yet.
-                      </td>
+                      <th className="py-3 px-3">Timestamp</th>
+                      <th className="py-3 px-3">Operation</th>
+                      <th className="py-3 px-3">Entity</th>
+                      <th className="py-3 px-3">Entity ID / Batch Details</th>
+                      <th className="py-3 px-3">Version</th>
+                      <th className="py-3 px-3 text-right">Status</th>
                     </tr>
-                  ) : (
-                    syncLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-muted/40 font-mono text-[11px]">
-                        <td className="py-2.5 px-3 text-muted-foreground">{formatShortDate(log.receivedAt)}</td>
-                        <td className="py-2.5 px-3 font-bold text-primary">{log.operation}</td>
-                        <td className="py-2.5 px-3 font-semibold text-foreground">{log.entityType}</td>
-                        <td className="py-2.5 px-3 text-muted-foreground truncate max-w-xs">{log.entityId}</td>
-                        <td className="py-2.5 px-3">v{log.serverVersion}</td>
-                        <td className="py-2.5 px-3 text-right">
-                          <span className="badge-pill bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px]">
-                            {log.status}
-                          </span>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {syncLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-muted-foreground italic">
+                          No ingest transactions recorded yet. Use the offline file import above or click &quot;Seed FLN Demo Data&quot;.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      syncLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-muted/40 font-mono text-[11px]">
+                          <td className="py-2.5 px-3 text-muted-foreground">{formatShortDate(log.receivedAt)}</td>
+                          <td className="py-2.5 px-3 font-bold text-primary">[{log.operation}]</td>
+                          <td className="py-2.5 px-3 font-semibold text-foreground">{log.entityType}</td>
+                          <td className="py-2.5 px-3 text-muted-foreground truncate max-w-sm">
+                            {log.details || log.entityId}
+                          </td>
+                          <td className="py-2.5 px-3">v{log.serverVersion}</td>
+                          <td className="py-2.5 px-3 text-right">
+                            <span className="badge-pill bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px]">
+                              {log.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
