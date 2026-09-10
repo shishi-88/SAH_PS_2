@@ -368,25 +368,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       if (students.length === 0) {
-        const matching = snapshot.students.filter((s) => s.classId === next.classroomId);
-        if (matching.length > 0) {
-          students = matching;
+        // Retain the existing cohort when switching teachers for the same class
+        if (snapshot.students && snapshot.students.length > 0) {
+          students = snapshot.students;
         } else {
           const demo = createDemoSnapshot();
-          students = demo.students.map((s) => ({
-            ...s,
-            id: `stu_${createId("stu")}`,
-            classId: next.classroomId,
-          }));
+          students = demo.students;
         }
       }
 
       const nextClassroom: Classroom = {
         ...snapshot.classroom,
-        id: next.classroomId,
-        name: next.classroomName,
+        id: snapshot.classroom?.id || next.classroomId,
+        name: snapshot.classroom?.name || next.classroomName,
         teacherLabel: next.teacherName,
-        schoolName: next.schoolName,
+        schoolName: snapshot.classroom?.schoolName || next.schoolName,
         assessedInRotationIds: Array.isArray(snapshot.classroom?.assessedInRotationIds)
           ? snapshot.classroom.assessedInRotationIds
           : [],

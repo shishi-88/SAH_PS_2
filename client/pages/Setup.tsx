@@ -145,7 +145,7 @@ export default function Setup() {
                     <span className="text-xs font-bold text-foreground">Prerna Sharma</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground pl-6.5">
-                    GPS-104 · Primary Section
+                    Class 1–3 · Language & Reading
                   </p>
                 </div>
                 <Button
@@ -155,7 +155,7 @@ export default function Setup() {
                   disabled={busy}
                   className="h-7 w-full rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs"
                 >
-                  {language === "hi" ? "प्रेरणा लॉगिन" : "Login as Prerna"}
+                  {language === "hi" ? "प्रेरणा (भाषा शिक्षक)" : "Login as Prerna (Reading)"}
                 </Button>
               </div>
 
@@ -169,20 +169,25 @@ export default function Setup() {
                     <span className="text-xs font-bold text-foreground">Rajesh Verma</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground pl-6.5">
-                    Bal Vidyalaya · Class 2
+                    Class 1–3 · Numeracy & Math
                   </p>
                 </div>
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => handleQuickTeacherLogin("Rajesh Verma", "Bal Vidyalaya Section B")}
+                  onClick={() => handleQuickTeacherLogin("Rajesh Verma", "GPS-104 Primary School")}
                   disabled={busy}
                   className="h-7 w-full rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 shadow-2xs"
                 >
-                  {language === "hi" ? "राजेश लॉगिन" : "Login as Rajesh"}
+                  {language === "hi" ? "राजेश (गणित शिक्षक)" : "Login as Rajesh (Math)"}
                 </Button>
               </div>
             </div>
+            <p className="text-center text-[10px] text-muted-foreground">
+              {language === "hi"
+                ? "💡 दोनों शिक्षक कक्षा 1–3 प्राथमिक सेक्शन (GPS-104) के एक ही छात्र समूह को पढ़ाते हैं।"
+                : "💡 Both teachers share the exact same student cohort in Class 1–3 Primary Section (GPS-104)."}
+            </p>
           </div>
 
           {errorMessage && (

@@ -55,14 +55,14 @@ class CentralStore {
     };
     this.teachers.set(defaultTeacher.id, defaultTeacher);
 
-    // Seed default teacher 2 (for quick switch demonstrations)
+    // Seed default teacher 2 (co-teacher for the SAME class)
     const teacher2: TeacherEntity = {
       id: "tea_rajesh",
       name: "Rajesh Verma",
-      email: "rajesh.verma@balvidyalaya.edu.in",
+      email: "rajesh.verma@primaryschool.edu.in",
       password: "teacher123",
-      schoolId: "BV-202",
-      schoolName: "Bal Vidyalaya Section B",
+      schoolId: "GPS-104",
+      schoolName: "Primary School, GPS-104",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -158,10 +158,13 @@ class CentralStore {
       this.teachers.set(teacher.id, teacher);
     }
 
-    // 4. Find or create classroom for this teacher
+    // 4. Find matching classroom by name so co-teachers share the SAME class and students
     if (!classroom) {
       classroom = Array.from(this.classes.values()).find(
-        (c) => c.teacherId === teacher!.id && c.name.toLowerCase() === reqClassroomName.toLowerCase()
+        (c) =>
+          c.name.toLowerCase() === reqClassroomName.toLowerCase() ||
+          c.name.toLowerCase().includes("primary section") ||
+          c.name.toLowerCase().includes("class 1–3")
       );
     }
 

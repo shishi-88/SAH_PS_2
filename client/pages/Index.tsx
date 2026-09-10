@@ -109,11 +109,11 @@ export default function Index() {
           </div>
         </div>
 
-        {/* 1-Click Teacher Switch Demo Bar */}
+        {/* 1-Click Teacher Switch Demo Bar (Same Classroom: Class 1–3 Primary Section) */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border/60 text-xs">
           <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium">
             <Sparkles className="h-3 w-3 text-amber-500" />
-            {language === "hi" ? "त्वरित शिक्षक स्विच डेमो:" : "Quick Switch Demo:"}
+            {language === "hi" ? "समान कक्षा शिक्षक स्विच:" : "Same-Class Teacher Switch:"}
           </span>
           <div className="flex items-center gap-1.5">
             <button
@@ -123,15 +123,16 @@ export default function Index() {
                   teacherName: "Prerna Sharma",
                   password: "teacher123",
                   schoolName: "GPS-104 Primary School",
+                  classroomName: "Class 1–3 Primary Section (कक्षा 1–3)",
                 });
               }}
               className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all border ${
                 (session?.teacherName || classroom.teacherLabel)?.toLowerCase().includes("prerna")
-                  ? "bg-primary text-primary-foreground border-primary shadow-2xs"
+                  ? "bg-primary text-primary-foreground border-primary shadow-2xs ring-2 ring-primary/20"
                   : "bg-card text-foreground hover:bg-muted border-border"
               }`}
             >
-              👩‍🏫 Prerna Sharma (GPS-104)
+              👩‍🏫 Prerna Sharma (Reading)
             </button>
             <button
               type="button"
@@ -139,16 +140,17 @@ export default function Index() {
                 await completeSetup({
                   teacherName: "Rajesh Verma",
                   password: "teacher123",
-                  schoolName: "Bal Vidyalaya Section B",
+                  schoolName: "GPS-104 Primary School",
+                  classroomName: "Class 1–3 Primary Section (कक्षा 1–3)",
                 });
               }}
               className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all border ${
                 (session?.teacherName || classroom.teacherLabel)?.toLowerCase().includes("rajesh")
-                  ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs ring-2 ring-indigo-500/20"
                   : "bg-card text-foreground hover:bg-muted border-border"
               }`}
             >
-              👨‍🏫 Rajesh Verma (Bal Vidyalaya)
+              👨‍🏫 Rajesh Verma (Math)
             </button>
           </div>
         </div>
